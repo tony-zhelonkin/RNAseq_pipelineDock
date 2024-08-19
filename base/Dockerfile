@@ -1,4 +1,4 @@
-FROM bioconductor/release_core2
+FROM ubuntu:20.04
 MAINTAINER Bastian Schiffthaler (b.schiffthaler@gmail.com)
 RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
 RUN echo 'training:training' | chpasswd
