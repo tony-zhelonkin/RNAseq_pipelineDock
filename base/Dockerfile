@@ -1,6 +1,10 @@
 FROM ubuntu:20.04 
 #(bioconductor/release-core2 was deprecated)
 MAINTAINER Anton Zhelonkin (anton.bioinf.md@gmail.com)
+ENV TZ=USA/Chicago
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ARG DEBIAN_FRONTEND=noninteractive
+
 #(Commented Out for now)
 #RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
 #RUN echo 'training:training' | chpasswd
