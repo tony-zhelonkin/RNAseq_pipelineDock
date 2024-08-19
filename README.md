@@ -1,8 +1,15 @@
 # General information
 
-I am shamelessly copy/pasting the .MD file from the docker hub page which this source is used to build. 
+I am shamelessly forking the [RNAseq pipeline rep](https://github.com/bschiffthaler/ngs) managed by [Bastian Schiffthaler](https://github.com/bschiffthaler) 
 
-The dockerhub page is [here](https://registry.hub.docker.com/u/bschiffthaler/ngs/)!
+The dockerhub page for the original pipeleine is here [here](https://registry.hub.docker.com/u/bschiffthaler/ngs/)!
+
+I`ll be running tests on  modifications and adjustments to the pipeleine updating tools versions to the latest/or stable ones, so work is not guaranteed.
+
+Below I leave some of the original commentaries by Bastian Shiffthaller. Later I might modify the README instructions based on the adjusments I might introduce into the pipeline.
+
+
+# Build the Docker Image 
 
 Build the docker with:
 
@@ -18,9 +25,10 @@ Ready-to-work docker for next generation sequence analysis including binaries:
 
 - Sequence data QC ([FastQC](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](http://multiqc.info/)) [15]
 - Trimming [(Trimmomatic)](http://www.usadellab.org/cms/?page=trimmomatic) [1]
-- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2]
-- Genome mapping ([STAR](https://github.com/alexdobin/STAR) [3] , [BWA](http://bio-bwa.sourceforge.net/) [4] , [kallisto](https://pachterlab.github.io/kallisto/) [14], [salmon](https://combine-lab.github.io/salmon/)[16])
+- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2] (silenced)
+- Genome mapping ([STAR](https://github.com/alexdobin/STAR) [3] , [BWA](http://bio-bwa.sourceforge.net/) [4] , [kallisto](https://pachterlab.github.io/kallisto/) [14], [salmon](https://combine-lab.github.io/salmon/)[16]) (kalisto and salmon silenced)
 - Feature Summarisation [(HTSeq)](http://www-huber.embl.de/HTSeq/doc/overview.html) [5]
+- added [quant3p](https://github.com/ctlab/quant3p)  
 - File manipulation and exploration [(samtools,htslib,bcftools)](http://www.htslib.org/) [8],[9]
 - Alignment visualisation ([JBrowse](http://jbrowse.org/)) [10]
 - Peak calling ([MACS2](http://liulab.dfci.harvard.edu/MACS/))  [11]
