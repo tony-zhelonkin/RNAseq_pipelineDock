@@ -1,8 +1,8 @@
 # General information
 
-I am shamelessly forking the [RNAseq pipeline rep](https://github.com/bschiffthaler/ngs) managed by [Bastian Schiffthaler](https://github.com/bschiffthaler) 
+I am shamelessly forking the [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs) managed by [Bastian Schiffthaler](https://github.com/bschiffthaler) 
 
-The dockerhub page for the original pipeleine is here [here](https://registry.hub.docker.com/u/bschiffthaler/ngs/)!
+The dockerhub page for the original pipeleine is [here](https://registry.hub.docker.com/u/bschiffthaler/ngs/)!
 
 I`ll be running tests on  modifications and adjustments to the pipeleine updating tools versions to the latest/or stable ones, so work is not guaranteed.
 
