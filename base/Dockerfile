@@ -6,12 +6,12 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ARG DEBIAN_FRONTEND=noninteractive
 
 #(Commented Out for now)
-#RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
-#RUN echo 'training:training' | chpasswd
-#RUN mkdir /home/training/reference
-#RUN mkdir /home/training/data
-#RUN chsh -s /bin/bash training
-#RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
+RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
+RUN echo 'training:training' | chpasswd
+RUN mkdir /home/training/reference
+RUN mkdir /home/training/data
+RUN chsh -s /bin/bash training
+RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
 
 
 
@@ -21,8 +21,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y --fix-missing \
     wget libghc-zlib-dev libfreetype6-dev libpng-dev libxft-dev \
     libncurses-dev git unzip ftp libzmq3-dev \
-    nano python3-dev python3-pip ftp \
-    apache2 openssl curl libboost-all-dev \
+    nano gradle python3-dev python3-pip ftp \
+    apache2 openssl libcurl4-openssl-dev curl libboost-all-dev \
     supervisor openssh-server libbz2-dev \
     liblzma-dev automake cmake openjdk-17-jre-headless shellinabox && \
     mkdir build && \
@@ -104,22 +104,29 @@ RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.
     chmod +x /usr/bin/trimmomatic
 
 #########
-### Picard 
+### Picard
 ########
-RUN git clone https://github.com/broadinstitute/picard.git && \
-WORKDIR picard 
+# Clone the Picard repository
+RUN git clone https://github.com/broadinstitute/picard.git
+# Set the working directory to the cloned Picard directory
+WORKDIR picard
+# Build Picard using Gradle and clean up after
+RUN chmod +x gradlew
 RUN ./gradlew shadowJar && \
     java -jar build/libs/picard.jar && \
     ./gradlew clean && \
     ./gradlew test
+# Return to the previous working directory
 WORKDIR /build
+
+
 
 ########
 ### quant3p
 ########
 WORKDIR /build
-RUN git clone git@github.com:ctlab/quant3p.git && \
-WORKDIR quant3p
+RUN git clone git@github.com:ctlab/quant3p.git
+WORKDIR /quant3p
 RUN python setup.py install
 WORKDIR /build
     
