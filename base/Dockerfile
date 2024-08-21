@@ -4,8 +4,6 @@ MAINTAINER Anton Zhelonkin (anton.bioinf.md@gmail.com)
 ENV TZ=USA/Chicago
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ARG DEBIAN_FRONTEND=noninteractive
-
-#(Commented Out for now)
 RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
 RUN echo 'training:training' | chpasswd
 RUN mkdir /home/training/reference
@@ -13,25 +11,18 @@ RUN mkdir /home/training/data
 RUN chsh -s /bin/bash training
 RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
 
-
-
 #########
 ### Aptitude packages (updated openJDK from 8 to 17)
 #########
 RUN apt update && apt install -y --fix-missing \
     wget libghc-zlib-dev libfreetype6-dev libpng-dev libxft-dev \
     libncurses-dev git unzip ftp libzmq3-dev \
-    nano gradle python3-dev python3-pip ftp \
+    nano python3-dev python3-pip ftp \
     apache2 openssl libcurl4-openssl-dev curl libboost-all-dev \
     supervisor openssh-server libbz2-dev \
     liblzma-dev automake cmake openjdk-17-jre-headless shellinabox && \
     mkdir build && \
     usermod -G training,www-data training
-### Installing Cython for quant3p (install Cython later in the downstream process)
-#RUN pip3 install --no-cache-dir Cython && \
-#RUN \
-#    cd lib && \
-#    python3 setup.py
 WORKDIR /build
 
 #########
@@ -111,22 +102,27 @@ RUN git clone https://github.com/broadinstitute/picard.git
 # Set the working directory to the cloned Picard directory
 WORKDIR picard
 # Build Picard using Gradle and clean up after
-RUN chmod +x gradlew
-RUN ./gradlew shadowJar && \
-    java -jar build/libs/picard.jar && \
-    ./gradlew clean && \
-    ./gradlew test
+RUN chmod +x gradlew && \
+    ./gradlew shadowJar && \
+    echo "alias picard='java -jar build/libs/picard.jar'" >> /home/training/.profile
 # Return to the previous working directory
 WORKDIR /build
 
-
+#########
+### Pip installs: HTSeq, PySam, MACS2
+#########
+RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 multiqc
+WORKDIR /build
 
 ########
 ### quant3p
 ########
 WORKDIR /build
-RUN git clone git@github.com:ctlab/quant3p.git
-WORKDIR /quant3p
+RUN wget https://github.com/ctlab/quant3p/archive/refs/heads/master.zip && \ 
+    unzip master.zip && \
+    mv quant3p-master quant3p && \
+    ln -s /usr/bin/python3 /usr/bin/python
+WORKDIR quant3p
 RUN python setup.py install
 WORKDIR /build
     
@@ -158,25 +154,9 @@ WORKDIR /build
 ### BWA (updated version)
 #########
 RUN wget https://github.com/lh3/bwa/archive/refs/tags/v0.7.18.tar.gz && \
-    tar -xf bwa-0.7.18.tar.bz2
+    tar -xf v0.7.18.tar.gz
 WORKDIR bwa-0.7.18
 RUN make -j 4 && cp bwa /usr/local/bin
-
-#########
-### Pip installs: HTSeq, PySam, MACS2
-#########
-RUN pip3 install numpy && \
-    pip3 install htseq && \
-    pip3 install PySam && \
-    pip3 install matplotlib && \
-    pip3 install scipy && \
-    pip3 install anndata && \
-    pip3 install loompy && \
-    pip3 install SWIG && \
-    pip3 install Cython && \
-    pip3 install MACS2
-RUN pip3 install multiqc
-WORKDIR /build
 
 #########
 ### USeq (updated version)  and Sissrs
@@ -225,3 +205,9 @@ ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
 #EXPOSE 80 8888 8787 443
 #CMD ["/usr/bin/supervisord","-c","/etc/supervisor/conf.d/supervisord.conf"]
 
+#########
+### Cleaning up the build 
+#########
+#WORKDIR build
+#RUN rm *tar* && \
+#    rm *zip
