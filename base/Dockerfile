@@ -102,9 +102,11 @@ RUN git clone https://github.com/broadinstitute/picard.git
 # Set the working directory to the cloned Picard directory
 WORKDIR picard
 # Build Picard using Gradle and clean up after
-RUN chmod +x gradlew && \
-    ./gradlew shadowJar && \
-    echo "alias picard='java -jar build/libs/picard.jar'" >> /home/training/.profile
+RUN ./gradlew shadowJar
+WORKDIR /build
+RUN cp -r picard /usr/share/ && \
+    echo '#!/bin/bash\njava -jar /usr/share/picard/build/libs/picard.jar $@' > /usr/bin/picard && \
+    chmod +x /usr/bin/picard
 # Return to the previous working directory
 WORKDIR /build
 
@@ -184,8 +186,7 @@ RUN ./setup.sh && \
     touch data/tracks.conf && \
     chmod a+rw    /var/www/html/JBrowse-1.16.11/data/tracks.conf
 WORKDIR /
-RUN rm /var/www/html/JBrowse-1.16.11.zip && \
-    rm -rf /build/*
+RUN rm /var/www/html/JBrowse-1.16.11.zip
 ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
 
 #########
@@ -208,6 +209,7 @@ ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
 #########
 ### Cleaning up the build 
 #########
-#WORKDIR build
+WORKDIR build
+RUN rm -rf /build/*
 #RUN rm *tar* && \
 #    rm *zip
