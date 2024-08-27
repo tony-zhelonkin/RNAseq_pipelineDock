@@ -71,9 +71,9 @@ RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-
     tar -xf salmon-1.10.0_linux_x86_64.tar.gz
 WORKDIR /build/salmon-latest_linux_x86_64/
 RUN cp bin/salmon /usr/local/bin && \
-    cp lib/liblzma.so.5* /usr/local/lib && \
+    cp lib/liblzma.so.* /usr/local/lib && \
     cp lib/libtbb* /usr/local/lib
-## building from source won`t work because of boost problems
+##### building SALMON from source won`t work because with libboost compilation
 #RUN wget https://github.com/COMBINE-lab/salmon/archive/refs/tags/v1.10.1.tar.gz  && \
 #    tar -xf v1.10.1.tar.gz
 #WORKDIR /build/salmon-1.10.1/
@@ -131,14 +131,14 @@ WORKDIR /build
 ########
 ### quant3p
 ########
-#WORKDIR /build
-#RUN wget https://github.com/ctlab/quant3p/archive/refs/heads/master.zip && \ 
-#    unzip master.zip && \
-#    mv quant3p-master quant3p && \
-#    ln -s /usr/bin/python3 /usr/bin/python
-#WORKDIR quant3p
-#RUN python setup.py install
-#WORKDIR /build
+WORKDIR /build
+RUN wget https://github.com/ctlab/quant3p/archive/refs/heads/master.zip && \ 
+    unzip master.zip && \
+    mv quant3p-master quant3p && \
+    ln -s /usr/bin/python3 /usr/bin/python
+WORKDIR quant3p
+RUN python setup.py install
+WORKDIR /build
     
 #########
 ### SortmeRNA
