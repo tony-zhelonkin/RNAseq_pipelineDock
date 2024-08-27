@@ -17,6 +17,12 @@ Build the docker with:
 docker build -t <my_image_name> base
 ```
 
+In case of errors it`s usefull to build an image from scratch without using the cache from interim builds logging all the stderr and stdout: 
+
+```
+docker build --no-cache -t rnapipe:latest . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
+```
+
 ----------------------
 
 # General information
@@ -25,21 +31,32 @@ Ready-to-work docker for next generation sequence analysis including binaries:
 
 - Sequence data QC ([FastQC](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](http://multiqc.info/)) [15]
 - Trimming [(Trimmomatic)](http://www.usadellab.org/cms/?page=trimmomatic) [1]
-- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2] (silenced)
-- Genome mapping ([STAR](https://github.com/alexdobin/STAR) [3] , [BWA](http://bio-bwa.sourceforge.net/) [4] , [kallisto](https://pachterlab.github.io/kallisto/) [14], [salmon](https://combine-lab.github.io/salmon/)[16]) (kalisto and salmon silenced)
+- Genome mapping ([STAR](https://github.com/alexdobin/STAR) [3] , [BWA](http://bio-bwa.sourceforge.net/) [4] , [salmon](https://combine-lab.github.io/salmon/)[16])
 - Feature Summarisation [(HTSeq)](http://www-huber.embl.de/HTSeq/doc/overview.html) [5]
-- added [quant3p](https://github.com/ctlab/quant3p)  
 - File manipulation and exploration [(samtools,htslib,bcftools)](http://www.htslib.org/) [8],[9]
 - Alignment visualisation ([JBrowse](http://jbrowse.org/)) [10]
 - Peak calling ([MACS2](http://liulab.dfci.harvard.edu/MACS/))  [11]
 - Sequence data analysis ([Useq](http://useq.sourceforge.net/)) [12]
 - Binding site determination ([SISSRs](http://www.rajajothi.com/sissrs/)) [13]
 
-For downstream analysis, this docker is based on bioconductor/release_base2 [6] , which contains all the most commonly used downstream analysis tools implemented in R [7] .
+One tools functionality has so far been added in comparison to the [original repo](https://github.com/bschiffthaler/ngs): 
+- [quant3p](https://github.com/ctlab/quant3p)  
 
-The ":with-data" tagged image used to contain a set of training data which is commonly used in our RNA-Seq training courses. Due to size concerns of the docker image, this tag is no longer available.
+A couple of tools have been silenced from the [original repo](https://github.com/bschiffthaler/ngs). These are:  
+- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2] 
+- [kallisto](https://pachterlab.github.io/kallisto/) [14] 
+
+R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 6Gb). 
+
+# Dockerfile recipes 
+For the time being there are two Dockerfiles: Dockerfile and Dockerfile_mod. 
+- Dockerfile should be considered the stable image recipe (has no Salmon functionality) 
+- Dockerfile_mod is an experimental image, which I test my adjustments on 
+
 
 The source (+Dockerfile) which was used to build this container, is [here](https://github.com/bschiffthaler/ngs) on GitHub!
+
+The tutorial below is for the time being is a duplicate of the Bastian Schiffthaler`s](https://github.com/bschiffthaler) [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs). I`ll be populating it later with my own understanding on how I like to use the container. 
 
 # Common use cases
 
