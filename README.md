@@ -20,7 +20,7 @@ docker build -t <my_image_name> base
 In case of errors it`s usefull to build an image from scratch without using the cache from interim builds logging all the stderr and stdout: 
 
 ```
-docker build --no-cache -t rnapipe:latest . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
+docker build --no-cache -t <my_image_name> . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
 ```
 
 ----------------------
