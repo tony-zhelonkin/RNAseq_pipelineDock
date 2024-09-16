@@ -9,12 +9,12 @@ BATCH_1_DIR="."
 OUTPUT_DIR="./STAR_alignment/bam"
 LOG_DIR="./STAR_alignment/logs"
 
+# Define computational resources
+JOB_NUMBER="1" # number of GNU parallel jobs
+GB_FREE="10G" # number of GB left free before any new process gets spawned
+
 # Create logs directory if it doesn't exist
 mkdir -p "$LOG_DIR"
-
-# Define naming conventions for read pairs
-R1_PATTERNS=("_R1" "_0001" "_1")
-R2_PATTERNS=("_R2" "_0002" "_2")
 
 # Function to log and output a command (only show errors in terminal)
 log_and_run() {
@@ -44,12 +44,12 @@ process_fastq_pair() {
     echo "Processing sample: $BASE_NAME"  # Minimal terminal output
 
     # STAR alignment
-    log_and_run "STAR --runThreadN 4 \
+    log_and_run "STAR --runThreadN 10 \
                  --genomeDir \"$GENOME_DIR\" \
                  --readFilesIn \"$R1_FILE\" \"$R2_FILE\" \
                  --readFilesCommand zcat \
                  --sjdbOverhang 100 \
-                 --limitBAMsortRAM 25000000000 \
+                 --limitBAMsortRAM 45000000000 \
                  --outFileNamePrefix \"$OUTPUT_DIR/${BASE_NAME}_\" \
                  --outSAMtype BAM SortedByCoordinate \
                  --outSAMattrRGline ID:$ID LB:$ID SM:$SM PL:$PL PU:$PU \
@@ -62,45 +62,45 @@ process_fastq_pair() {
 export -f process_fastq_pair log_and_run
 export GENOME_DIR OUTPUT_DIR LOG_DIR
 
-# Identify R1 files based on naming patterns
+# Identify if a file is an R1 file
 is_r1_file() {
     local FILE="$1"
-    for pattern in "${R1_PATTERNS[@]}"; do
-        if [[ "$FILE" =~ $pattern ]]; then
-            echo "true"
-            return
-        fi
-    done
-    echo "false"
+    if [[ "$FILE" =~ (_R1|_1)\.(fastq|fq|fasta)\.gz$ ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
 }
 
-# Find the corresponding R2 file
-find_r2_file() {
+# Generate the corresponding R2 file from an R1 file
+get_r2_file() {
     local R1_FILE="$1"
-    for i in "${!R1_PATTERNS[@]}"; do
-        local R2_FILE="${R1_FILE/${R1_PATTERNS[$i]}/${R2_PATTERNS[$i]}}"
-        if [[ -f "$R2_FILE" ]]; then
-            echo "$R2_FILE"
-            return
-        fi
-    done
-    return 1  # No matching R2 file found
+    if [[ "$R1_FILE" =~ _R1 ]]; then
+        echo "${R1_FILE/_R1/_R2}"
+    elif [[ "$R1_FILE" =~ _1 ]]; then
+        echo "${R1_FILE/_1/_2}"
+    else
+        return 1  # No valid R1 pattern found
+    fi
 }
 
 # Main loop: Find all R1 files, process them in parallel
-find "$BATCH_1_DIR" -type f -name "*.fastq.gz" -o -name "*.fq.gz" | while read -r FILE; do
+find "$BATCH_1_DIR" -type f \( -name "*.fastq.gz" -o -name "*.fq.gz" -o -name "*.fasta.gz" \) | while read -r FILE; do
     if [[ "$(is_r1_file "$FILE")" == "true" ]]; then
-        BASE_NAME=$(basename "$FILE" | sed -E 's/(_R1|_0001|_1)(_paired)?(_001)?\.(fastq|fq)\.gz//')
+        BASE_NAME=$(basename "$FILE" | sed -E 's/(_R1|_1)(_paired)?(_001)?\.(fastq|fq|fasta)\.gz//')
 
-        R2_FILE=$(find_r2_file "$FILE")
-        if [[ -n "$R2_FILE" ]]; then
+        # Generate corresponding R2 file name
+        R2_FILE=$(get_r2_file "$FILE")
+        
+        # Check if R2 file exists
+        if [[ -f "$R2_FILE" ]]; then
             BATCH_DIR=$(dirname "$FILE")
             echo "$FILE $R2_FILE $BASE_NAME $BATCH_DIR"
         else
             echo "Warning: Corresponding R2 file not found for $BASE_NAME" >&2
         fi
     fi
-done | parallel --progress -j 2 --memfree 10G --colsep ' ' process_fastq_pair {1} {2} {3} {4}
+done | parallel --progress -j "$JOB_NUMBER" --memfree "$GB_FREE" --colsep ' ' process_fastq_pair {1} {2} {3} {4}
 
 # End timing and calculate total duration
 END_TIME=$(date +%s)
