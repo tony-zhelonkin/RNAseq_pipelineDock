@@ -16,11 +16,12 @@ RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
 #########
 RUN apt update && apt install -y --fix-missing \
     wget libghc-zlib-dev libfreetype6-dev libpng-dev libxft-dev \
-    libncurses-dev git unzip ftp libzmq3-dev \
+    libncurses-dev git unzip ftp libzmq3-dev libboost-all-dev \
     nano python3-dev python3-pip ftp \
-    apache2 openssl libcurl4-openssl-dev curl libboost-all-dev \
+    apache2 openssl libcurl4-openssl-dev curl \
     supervisor openssh-server libbz2-dev \
-    liblzma-dev automake cmake openjdk-17-jre-headless shellinabox && \
+    liblzma-dev automake vim parallel cmake \ 
+    openjdk-17-jre-headless shellinabox && \
     mkdir build && \
     usermod -G training,www-data training
 WORKDIR /build
@@ -56,22 +57,33 @@ WORKDIR /build
 ######### (TurnOff)
 ### kallisto
 #########
-#RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz && \
-#    tar -xf kallisto_linux-v0.46.1.tar.gz
+#RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.51.0.tar.gz && \
+#    tar -xf kallisto_linux-v0.51.0.tar.gz
 #WORKDIR /build/kallisto
 #RUN cp kallisto /usr/local/bin
 #WORKDIR /build
 
-######### (TurnOff)
+#########
 ### Salmon
 #########
-#WORKDIR /build
-#RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.0.0/salmon-1.0.0_linux_x86_64.tar.gz && \
-#    tar -xf salmon-1.0.0_linux_x86_64.tar.gz
-#WORKDIR /build/salmon-latest_linux_x86_64/
-#RUN cp bin/salmon /usr/local/bin && \
-#    cp lib/liblzma.so.0 /usr/local/lib && \
-#    cp lib/libtbb* /usr/local/lib
+WORKDIR /build
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz && \
+    tar -xf salmon-1.10.0_linux_x86_64.tar.gz
+WORKDIR /build/salmon-latest_linux_x86_64/
+RUN cp bin/salmon /usr/local/bin && \
+    cp lib/liblzma.so.5* /usr/local/lib && \
+    cp lib/libtbb* /usr/local/lib
+## building from source won`t work because of boost problems
+#RUN wget https://github.com/COMBINE-lab/salmon/archive/refs/tags/v1.10.1.tar.gz  && \
+#    tar -xf v1.10.1.tar.gz
+#WORKDIR /build/salmon-1.10.1/
+#RUN mkdir build
+#WORKDIR /build/salmon-1.10.1/build
+#RUN cmake -DCMAKE_INSTALL_PREFIX=/usr/bin -DFETCH_BOOST=TRUE /build/salmon-1.10.1/ && \
+#    make -j 4 && make install
+#RUN cmake -DCMAKE_INSTALL_PREFIX=/usr/bin /build/salmon-1.10.1/ && \
+#    make -j 4 && make install
+WORKDIR /build
 
 #########
 ### BEDtools (updated version)
@@ -111,9 +123,10 @@ RUN cp -r picard /usr/share/ && \
 WORKDIR /build
 
 #########
-### Pip installs: HTSeq, PySam, MACS2
+### Pip installs: HTSeq, PySam, MACS2, RSeQC, developer MultiQC (bugs for picard CollectRNAseqMetrics function) 
 #########
-RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 multiqc
+RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 RSeQC 
+RUN pip3 install --upgrade --force-reinstall git+https://github.com/MultiQC/MultiQC.git
 WORKDIR /build
 
 ########
@@ -160,7 +173,7 @@ RUN wget https://github.com/lh3/bwa/archive/refs/tags/v0.7.18.tar.gz && \
 WORKDIR bwa-0.7.18
 RUN make -j 4 && cp bwa /usr/local/bin
 
-#########
+######### CHIP-seq tools
 ### USeq (updated version)  and Sissrs
 #########
 RUN mkdir /data && \
@@ -170,24 +183,29 @@ RUN mkdir /data && \
     tar -xf sissrs_v1.4.tar.gz && \
     cp sissrs.pl /usr/local/bin
 
+############
+### Install scripts
+#ADD scripts/script.sh /usr/local/bin/
+
+
 ######### (updated version)
 ### JBrowse to easily view biological data formats
 #########
-RUN rm /var/www/html/index.html && \
-    ln -sf /home/training /var/www/html/home
-WORKDIR /var/www/html
-RUN wget https://github.com/GMOD/jbrowse/releases/download/1.16.11-release/JBrowse-1.16.11.zip && \
-    unzip JBrowse-1.16.11.zip
-WORKDIR /var/www/html/JBrowse-1.16.11
-RUN ./setup.sh && \
-    mkdir -p data/bam && \
-    chown -R www-data:www-data /var/www/html && \
-    chmod a+rwx /var/www/html/JBrowse-1.16.11/data/bam && \
-    touch data/tracks.conf && \
-    chmod a+rw    /var/www/html/JBrowse-1.16.11/data/tracks.conf
-WORKDIR /
-RUN rm /var/www/html/JBrowse-1.16.11.zip
-ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
+#RUN rm /var/www/html/index.html && \
+#    ln -sf /home/training /var/www/html/home
+#WORKDIR /var/www/html
+#RUN wget https://github.com/GMOD/jbrowse/releases/download/1.16.11-release/JBrowse-1.16.11.zip && \
+#    unzip JBrowse-1.16.11.zip
+#WORKDIR /var/www/html/JBrowse-1.16.11
+#RUN ./setup.sh && \
+#    mkdir -p data/bam && \
+#    chown -R www-data:www-data /var/www/html && \
+#    chmod a+rwx /var/www/html/JBrowse-1.16.11/data/bam && \
+#    touch data/tracks.conf && \
+#    chmod a+rw    /var/www/html/JBrowse-1.16.11/data/tracks.conf
+#WORKDIR /
+#RUN rm /var/www/html/JBrowse-1.16.11.zip
+#ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
 
 #########
 ### R installs
