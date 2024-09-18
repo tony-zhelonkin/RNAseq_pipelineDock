@@ -1,261 +1,564 @@
-# News
+# SCRIPTS DESCRIPTION
 
-- Nov 15th 2019: Updated software to most recent stable versions (at the time of this update)
-- Nov 15th 2019: Changed GateOne (unmaintained) to shellinabox
+---
 
-- I recorded myself doing basic QC on the training data. Check [here](https://www.youtube.com/watch?v=1rNEkWSxB5s) for the video.
+## Pre-Alignment Quality Control (`getPreAlignmentQC.sh`)
 
-# General information
+This script performs pre-alignment quality control (QC) on raw sequencing data using **FastQC** and **MultiQC**. It processes `.fq.gz`, `.fastq.gz`, and `.fasta` files in parallel, generating individual FastQC reports for each file and a consolidated MultiQC report.
 
-Ready-to-work docker for next generation sequence analysis including binaries:
+### Usage
 
-- Sequence data QC ([FastQC](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](http://multiqc.info/)) [15]
-- Trimming [(Trimmomatic)](http://www.usadellab.org/cms/?page=trimmomatic) [1]
-- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2]
-- Genome mapping ([STAR](https://github.com/alexdobin/STAR) [3] , [BWA](http://bio-bwa.sourceforge.net/) [4] , [kallisto](https://pachterlab.github.io/kallisto/) [14], [salmon](https://combine-lab.github.io/salmon/)[16])
-- Feature Summarisation [(HTSeq)](http://www-huber.embl.de/HTSeq/doc/overview.html) [5]
-- File manipulation and exploration [(samtools,htslib,bcftools)](http://www.htslib.org/) [8],[9]
-- Alignment visualisation ([JBrowse](http://jbrowse.org/)) [10]
-- Peak calling ([MACS2](http://liulab.dfci.harvard.edu/MACS/))  [11]
-- Sequence data analysis ([Useq](http://useq.sourceforge.net/)) [12]
-- Binding site determination ([SISSRs](http://www.rajajothi.com/sissrs/)) [13]
-
-For downstream analysis, this docker is based on bioconductor/release_core2 [6] , which contains all the most commonly used downstream analysis tools implemented in R [7] .
-
-The ":with-data" tagged image used to contain a set of training data which is commonly used in our RNA-Seq training courses. Due to size concerns of the docker image, this tag is no longer available.
-
-The source (+Dockerfile) which was used to build this container, is [here](https://github.com/bschiffthaler/ngs) on GitHub!
-
-# Common use cases
-
-Even if meant for training purposes, this Docker should allow a scientist to carry out an RNA-Seq based differential expression study as described [in this protocol](http://www.epigenesys.eu/images/stories/protocols/pdf/20150303161357_p67.pdf).
-
-For reasons of brevity, I will not be going into great detail (see the protocol), but I will give a short overview of common use cases in differential expression analysis.
-
-## Index
-
-1. Basics
-   - Mounting host directories inside the docker container
-2. Technical quality control with FastQC
-3. rRNA sorting with SortMeRNA
-4. Quality trimming with Trimmomatic
-5. Mapping to the reference genome with STAR
-   - Creating a STAR genome
-   - Mapping my reads
-6. Visualisation of the alignments in JBrowse
-7. Feature summarisation using HTSeq
-8. Downstream analysis using RStudio
-9. References
-
-## Basics
-
-### Mounting host directories inside the docker container
-
-In order to analyse your data from within the docker, you need to mount the directory containing it in the docker container. In this example, I have a FASTQ file called my_sample.fq.gz in my current working directory and would like to analyse it with software from my docker. I therefore mount my current working directory in the `/data` folder within the container. The `--rm` flag tells docker to clean up the process after it's done.:
-
-```
-docker run --rm -v $(pwd):/data bschiffthaler/ngs zcat /data/my_sample.fq.gz | head
+```bash
+./getPreAlignmentQC.sh
 ```
 
-The argument `-v $(pwd):/data` tells docker to mount the current working directory (from the `pwd` command) in the folder called `/data` within the container. Then, the `zcat` command is executed, which decompresses the file and streams the contents to the terminal. We pipe (using `|`) the output to the `head` command so that we only read the first few lines. Of course, this example is almost entirely non practical as you could do all of this without having the docker image.
+#### Options
 
-## Technical quality control with FastQC
+- **FASTQ_DIR**: Directory containing FASTQ/Fasta files (default: current directory `.`).
+- **FASTQC_OUTPUT_DIR**: Directory where FastQC reports will be saved (default: `./pre_align_QC/fastQC`).
+- **MULTIQC_OUTPUT_DIR**: Directory where the final MultiQC report will be saved (default: `./pre_align_QC/multiQC`).
+- **FASTQ_LOGS**: Directory to store logs (default: `./pre_align_QC/logs`).
+- **JOB_NUMBER**: Number of parallel jobs to run (default: 6).
 
-As a small prologue to this section I would like to differentiate between technical and biological QA. As an example, technical QA would show sequencing errors, PCR over-amplification and similar issues, while a sample swap during the RNA extraction would not show up during this part. For the lack of a better term, we call methods to determine the latter type of issues "biological QA". This part is about technical QA.
+### What the Script Does
 
-After you receive your sequencing data, and after every step that modifies it (trimming, rRNA sorting) QA should be done. Here, we will be using Simon Andrews' [FastQC](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/):
+1. **Searches for FASTQ/Fasta files**: Finds all `.fq.gz`, `.fastq.gz`, and `.fasta` files in the specified directory.
+2. **Runs FastQC**: Executes FastQC on each file in parallel, logging the results for each file.
+3. **Aggregates Results with MultiQC**: Runs MultiQC to create a consolidated report from all the FastQC outputs.
+4. **Logs the Process**: Keeps logs of file discovery and FastQC processing in the `logs` directory.
 
-```
-#Here I assume that I have a FASTQ file called 202_subset_1.fq.gz in my current working directory
-docker run --rm -v $(pwd):/data bschiffthaler/ngs fastqc /data/202_subset_1.fq.gz
-```
+### Script Caveats
 
-This will output the FastQC report as html in the directory. For interpretation of that report, please refer to the manual or the aforementioned protocol.
+- **Parallel processing**: The script runs up to 6 FastQC processes in parallel (customizable via the `JOB_NUMBER` variable). Adjust this number based on system resources.
+- **File types**: Only processes `.fq.gz`, `.fastq.gz`, and `.fasta` files. Other file formats need to be converted or manually included in future script updates.
+- **Output paths**: Ensure the output directories have the appropriate write permissions. The script creates the directories if they don’t exist, but permission issues will cause failures.
+- **Dependencies**: Requires **FastQC**, **MultiQC**, and **GNU parallel** to be installed and available in the system's `$PATH`.
 
-## rRNA sorting with SortMeRNA
+---
 
-Sorting out rRNA contamination with `sortmerna` can be carried out in a similar manner. The rRNA databases which come with `sortmerna` are in `/usr/share/rRNA_databases` and have been pre-indexed during the build of the docker. The indexes are in `/usr/share/rRNA_databases/index` and are always prefixed with the same name (minus the ".fasta" ending) as the source FASTA file. The correct syntax of the command can be taken from `sortmerna -h` and the [sortmerna manual](http://bioinfo.lifl.fr/RNA/sortmerna/code/SortMeRNA-user-manual-v2.0.pdf).
+## `runSTARalign.sh`
 
-To list the available databases:
+### Usage
 
-```
-docker run --rm bschiffthaler/ngs find /usr/share/rRNA_databases -name "*.fasta"
-```
-
-For convenience, I included an environment variable $SORTMERNA_DB, which can be passed to `sortmerna`'s `--ref` argument:
-
-```
-docker run --rm bschiffthaler/ngs bash -c 'sortmerna --ref $SORTMERNA_DB <...>'
-```
-
-Wrapping the command in `bash -c` here is crucial, since otherwise the environment variable would not be passed correctly.
-
-If I would like to sort my FASTQ file which I got from sequencing:
-
-```
-docker run -i -t --rm -v $(pwd):/data bschiffthaler/ngs sortmerna --ref \
-/usr/share/rRNA_databases/silva-bac-16s-id90.fasta,/usr/share/rRNA_databases/index/silva-bac-16s-id90 \
---reads /data/202_subset_1.fq \
---other /data/202_subset_1_sorted \
---aligned /data/202_subset_1_rRNA_hits --fastx
+```bash
+./runSTARalign.sh
 ```
 
-This outputs two files:
+This script aligns paired-end RNA-seq FASTQ files to a reference genome using STAR, and outputs sorted BAM files along with logs.
 
-1. 202_subset_1_sorted.fq - which contains all reads which show **NO** hits to an rRNA
-2. 202_subset_1_rRNA_hits.fq - which contains all reads which **DO** show hits to an rRNA
+### What Does the Script Do?
 
-## Quality trimming with Trimmomatic
+- **STAR Alignment**: The script uses the STAR aligner to align paired-end reads (R1 and R2 FASTQ files) to the specified genome directory. It processes files in parallel using GNU `parallel`.
+- **Input/Output**:
+  - **Input**: Paired-end FASTQ files located in the specified directory (`BATCH_1_DIR`).
+  - **Output**: Sorted BAM files saved in the `STAR_alignment/bam` directory and logs in `STAR_alignment/logs`.
+- **Resources**:
+  - Utilizes multi-threading to speed up alignment processes.
+  - Uses memory management to ensure there is always sufficient memory left for new processes.
 
-In case quality trimming (i.e.: dropping low quality reads or adapter sequences) is desired, this docker comes with Trimmomatic. I will again leave the specifics to the [Trimmomatic manual](http://www.usadellab.org/cms/?page=trimmomatic) and refer to the protocol for discussion about trimming. In the example case, I decide to trim my already rRNA-sorted data with Trimmomatic. To do so, I run:
+### Caveats
 
-```
-docker run -i -t --rm -v $(pwd):/data bschiffthaler/ngs trimmomatic SE -phred64 \
-/data/202_subset_1_sorted.fq /data/202_subset_1_sorted_trimmed.fq LEADING:10 \
-TRAILING:10 SLIDINGWINDOW:5:20 \
-ILLUMINACLIP:/usr/share/Trimmomatic-0.33/adapters/TruSeq2-SE.fa:2:30:10
-```
+1. **File Naming**: The script assumes paired-end reads follow a naming convention where the forward read is denoted with `_R1` or `_1`, and the reverse read with `_R2` or `_2`. Any deviations from this pattern may cause the script to skip files.
+2. **Memory Management**: The script uses the `--memfree` option of `parallel` to manage memory allocation. Adjust this value (`GB_FREE`) based on available resources to prevent excessive memory usage.
+3. **Log Output**: Each sample generates a log file in the `STAR_alignment/logs` directory. Errors encountered during alignment are logged here but also shown in the terminal for quick diagnosis.
+4. **Genome Index**: Ensure that the `GENOME_DIR` variable points to a valid STAR genome index. Incorrect or missing paths will cause the alignment step to fail.
+5. **Paired-end Only**: This script is designed specifically for paired-end reads. Single-end FASTQ files are not supported.
 
-This leaves me with a quality trimmed output file called "202_subset_1_sorted_trimmed.fq", which I will now map to the genome in the next step.
+---
 
-## Mapping to the reference genome with STAR
+## `getPostAlignmentQC.sh`
 
-### Creating a STAR genome
+### Usage
 
-After downloading an appropriate reference genome assembly for my organism, I generate a STAR genome which STAR will use during the mapping step. NOTE: This step might require workstation with a somewhat large amount of RAM (see [STAR manual](https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf)). If you do not have that available there are several parameters available which will reduce the memory requirement (at the cost of mapping speed). Those are described in the appendix of the STAR manual. If available, it is highly advised to feed the annotation in the form of a GTF file into STAR's `genomeGenerate`. If the annotation is provided as GFF, the `cufflinks` software suite comes with a tool called `gffread` that is capable of converting the formats:
-
-```
-docker run -i -t --rm -v $(pwd):/data bschiffthaler/ngs STAR --runMode \
-genomeGenerate --genomeDir /data/Potri_star/ --genomeFastaFiles \
-/data/Ptrichocarpa_v3.0_210.fa --sjdbGTFfile /data/Ptrichocarpa_v3.0_210_gene_exons.gtf \
---sjdbOverhang 99
-```
-
-The folder "Potri_star" (which I created beforehand) now holds the STAR genome.
-
-### Mapping my reads
-
-As always, refer to the manual for exact details on STAR's command line options. To summarise quickly, I direct STAR to my previously created genome directory and my sequencing read files, I set my maximum desired intron length to 11,000 (as this is the longest intron in the annotation) and finally, I specify that I would like the output file in the BAM format and sorted by coordinate.
-
-```
-docker run -i -t --rm -v $(pwd):/data bschiffthaler/ngs STAR --genomeDir \
-/data/Potri_star --readFilesIn /data/202_subset_1_sorted_trimmed.fq \
---alignIntronMax 11000 --outSAMtype BAM SortedByCoordinate \
---outFileNamePrefix /data/202_subset_1_sorted_trimmed_STAR
+```bash
+./getPostAlignmentQC.sh
 ```
 
-## Alignment visualisation using JBrowse
+This script performs post-alignment quality control (QC) on BAM files using Picard, RSeQC, and Samtools. It aggregates all QC metrics into a final MultiQC report.
 
-Unlike the previous commands, we need to keep the docker container alive and interactive, as JBrowse requires several steps to be functional. We will further need to map port 80 from the docker to the host in order to view alignments in apache. The option `-p 80:80` maps the port from the container to the host. Once we start apache, you can then open a web browser and navigate to your IP (on Linux hosts you can simply type "localhost" in the browser's address bar, on OSX and Windows hosts, you can find your docker's IP address if you run `boot2docker ip` from the boot2docker command. Look [here](https://docs.docker.com/userguide/usingdocker/#viewing-our-web-application-container) for more info.) The other options `-ti` tell docker that we want an interactive session, and that we want a (pseudo-)terminal to enter commands.
+### What Does the Script Do?
 
-```
-docker run -p 80:80 -v $(pwd):/data -ti bschiffthaler/ngs bash -l
-```
+1. **Picard Tools**: Runs `CollectRnaSeqMetrics` to generate RNA-seq metrics and `MarkDuplicates` to identify and quantify duplicates without removing them.
+2. **RSeQC**: Runs `infer_experiment.py` to determine strand-specificity using the BAM files.
+3. **Samtools**: Runs `flagstat` to generate alignment statistics.
+4. **MultiQC**: Combines the metrics from all tools into a single report, including metrics from STAR alignments located in `*_STARpass1` subdirectories.
 
-First, we start by adding our reference(s) to JBrowse. This is done with perl scripts which are delivered with JBrowse. The reference sequence in FASTA format and the reference annotation in GFF3 format are in my current working directory, as are the alignment results in BAM format.
+### Caveats
 
-Let's start by adding the FASTA and GFF3 files as tracks in JBrowse:
+1. **File Naming**: The script assumes all BAM files are in the specified `BAM_DIR`. Incorrectly named files or missing BAM files will result in skipped QC steps.
+2. **Reference Files**: Ensure that paths to the reference genome, refFlat file, ribosomal intervals, and BED annotation are correct. Incorrect paths will lead to failures in Picard and RSeQC steps.
+3. **Memory & CPU Usage**: The script runs Picard, RSeQC, and Samtools in parallel with a specified number of jobs (`JOB_NUMBER`). Ensure sufficient computational resources are available, especially for large datasets.
+4. **STAR Metrics**: The script looks for STAR metrics in `*_STARpass1` subdirectories. Ensure these directories are present and correctly named; otherwise, STAR metrics won’t be included in the final MultiQC report.
 
-```
-cd /var/www/html/JBrowse-1.11.6
-bin/prepare-refseqs.pl --fasta /data/Ptrichocarpa_v3.0_210.fa
-bin/flatfile-to-json.pl --gff /data/Ptrichocarpa_210_gene_exons.gff3 --trackType CanvasFeatures --trackLabel P.trichocarpa_v3.0_gene_exons
-```
+---
 
-This has now added the reference sequence and annotation as tracks in JBrowse. Now let's add our alignments. I added a script to this docker, which automatically adds a read alignment viewer track as well as a SNP and coverage histogram track to the file `/var/www/html/JBrowse-1.11.6/data/tracks.conf`. My alignment files are in a sub-folder within my current working directory. Before you run the script to add tracks, please make sure that your alignment file is BAM formatted, sorted and indexed. If you ran `STAR` as described above, you should already have a sorted BAM file. If you haven't you can sort the file:
+## `dedupPicard_postQC.sh`
 
-```
-samtools sort /data/<my_BAM_file.bam> -o /data/<my_sorted_BAM_file.bam>
-```
+### Usage
 
-Then index the file
-
-```
-samtools index /data/<my_sorted_BAM_file.bam>
+```bash
+./dedupPicard_postQC.sh
 ```
 
-After that is done, we can add the tracks to JBrowse
+This script processes BAM files by removing duplicates using Picard's `MarkDuplicates`, runs RNA-seq QC with `CollectRnaSeqMetrics`, and generates a final report using MultiQC.
 
-```
-add_JBrowse_tracks.sh /data
-```
+### What Does the Script Do?
 
-Finally, we can start the web server apache:
+1. **Picard MarkDuplicates**: Removes duplicates from BAM files, generating deduplicated BAM files and duplicate metrics.
+2. **Picard CollectRnaSeqMetrics**: Runs RNA-seq QC on the deduplicated BAM files, producing various RNA-seq metrics.
+3. **MultiQC**: Aggregates all the QC metrics into a unified report for easier interpretation.
 
-```
-service apache2 start
-```
+### Caveats
 
-Now, if we open a browser on the host and navigate to the aforementioned IP address (or localhost), we should see a link to JBrowse as well as the training user's home folder. Click on the JBrowse link, which will start JBrowse and browse your alignments!
+1. **File Paths**: Ensure the paths to the reference genome and `refFlat` files are correctly specified in the script. Incorrect paths will cause QC steps to fail.
+2. **Duplicate Removal**: By default, duplicates are permanently removed from the BAM files. If you need the original BAM files, make sure they are backed up before running the script.
+3. **Parallelization**: The script uses GNU `parallel` to process multiple BAM files concurrently. The number of jobs is set by `NUM_JOBS` (default is 2). Adjust this value according to your system’s resources.
+4. **Memory Usage**: Removing duplicates and running RNA-seq metrics can be memory-intensive. Ensure your system has enough resources, especially when working with large BAM files.
 
-I added a screenshot [here](https://www.dropbox.com/s/mw2uvugrh06y44y/Screenshot%202015-04-10%2002.43.22.png?dl=0) of what you should see!
+---
 
-## Feature summarisation using HTSeq
+Here’s the README for `GTFtoRefFlat.sh`:
 
-The final step before the actual differential expression testing is the feature summaristaion using HTSeq, specifically `htseq-count`. In this case we need to run the executable from within `bash -c` like this: `bash -c 'htseq-count <arguments>'`. The reason is that htseq-count does not write to a file, but writes to stdout, which means that we need to redirect stdout to a file. We could do `docker run <...> htseq-count <...> > my_counts.txt`, but only the htseq-count command would be run within docker and the redirection would be handled by the host, which has the unfortunate consequence that stderr output would be included in the file. This means that my_counts.txt would also contain diagnostic messages like "1,000,000 SAM lines processed". We work around this by running. [Here](http://www-huber.embl.de/users/anders/HTSeq/doc/count.html) is the htseq-count documentation to read about the options:
+## `GTFtoRefFlat.sh`
 
-```
-docker run -i -t --rm -v $(pwd):/data bschiffthaler/ngs bash -c 'htseq-count -f bam -r \
-pos -s no -t exon -i Parent /data/202_subset_1_sorted_trimmed_STARAligned.sortedByCoord.out.bam \
-/data/Ptrichocarpa_v3.0_210_synthetic-gene-models.gff3 > \
-/data/202_subset_1_sorted_trimmed_STAR_HTSeq.txt'
-```
+### Usage
 
-## Downstream analysis using RStudio
-
-Finally, the data is ready to be analysed by your differential expression testing tool of choice (e.g.: edgeR, DESeq2, limma, ...). We can therefore start RStudio like this:
-
-```
-docker run -p 8787:8787 --rm -v $(pwd):/data bschiffthaler/ngs
+```bash
+./GTFtoRefFlat.sh -i input.gtf -o output.refFlat
 ```
 
-This spawns an RStudio server, which you can reach by navigating to the host's IP on port 8787 in your web browser i.e.: if my IP is 192.168.1.10 (you can check this by running `ifconfig` on UNIX based systems and `ipconfig` on Windows) I would open my broweser and type:
+This script converts a GTF file into the RefFlat format, commonly required for certain RNA-seq QC tools like Picard.
 
+### What Does the Script Do?
+
+- **Input**: Takes a GTF file (using the `-i` flag) that contains gene annotation data.
+- **Output**: Generates a RefFlat file (specified with the `-o` flag) by extracting gene and transcript information from the GTF file.
+- The RefFlat format is essential for RNA-seq tools, as it defines gene and transcript details such as chromosomal positions and exon boundaries.
+
+### Caveats
+
+1. **GTF Format**: The script assumes a standard GTF format. Ensure that your GTF file contains the necessary fields (`gene_id`, `transcript_id`, `exon`) in the expected format.
+2. **Transcript Names**: If no `transcript_id` is present for a record in the GTF file, that entry will be skipped in the output.
+3. **Strand Information**: The script handles strand-specific data (`+` or `-`). However, if this field is not available or improperly formatted, the output might be inaccurate.
+4. **Dependencies**: Ensure that `awk` is available in your environment, as this script relies heavily on it for text processing.
+
+---
+
+## `getRibosomalIntervals_from_gtf.sh`
+
+### Usage
+
+```bash
+./getRibosomalIntervals_from_gtf.sh
 ```
-192.168.1.10:8787
+
+This script generates a ribosomal RNA (rRNA) interval list from a GTF file, suitable for use with tools like Picard, which require interval lists for certain QC tasks.
+
+### What Does the Script Do?
+
+1. **Input**: It takes a GTF annotation file that contains ribosomal RNA information and a reference genome in FASTA format.
+2. **Output**: It creates a Picard-compatible interval list (`ribosomal.interval_list`) that includes rRNA regions extracted from the GTF file.
+3. **FASTA Index Generation**: If a `.fai` index file for the reference genome doesn't exist, the script automatically generates it using `samtools faidx`.
+
+### Steps Performed by the Script
+
+1. **FASTA Index Check**:
+   - The script first checks if the `.fai` file (FASTA index) exists for the reference genome. If not, it creates the index using `samtools faidx`.
+2. **Header Creation**:
+   - The script adds a Picard-compatible header with chromosome size information extracted from the `.fai` file.
+3. **rRNA Interval Extraction**:
+   - The script searches the GTF file for `rRNA` features (i.e., annotations related to ribosomal RNA) and extracts their chromosome, start, end positions, and strand information.
+   - The gene name is also extracted, with default fallback to `"rRNA"` if not present.
+4. **Output**:
+   - The extracted information is formatted and written to the output interval list in Picard's format.
+
+### Expected Input Files
+
+- **GTF File**: The GTF file should contain annotations for ribosomal RNA, identified by `rRNA` in the feature fields or gene names.
+- **FASTA File**: The reference genome in FASTA format, along with its `.fai` index. The script will generate the `.fai` file if it’s missing.
+
+### Output
+
+The output is a Picard-compatible interval list file named `ribosomal.interval_list`.
+
+### Dependencies
+
+- **Samtools**: Required to generate the `.fai` index if it doesn't exist.
+- **Grep and Awk**: Used for text processing and extracting the required fields from the GTF and `.fai` files.
+
+### Example
+
+```bash
+./getRibosomalIntervals_from_gtf.sh
 ```
 
-in the address bar. You can then login with the credentials rstudio as both username and password. On windows and Mac OS, docker runs inside a virtual machine, you therefore need to provide the virtual machine's IP (which you see when you run `boot2docker` or by checking the $DOCKER_HOST environment variable). From within RStudio, you could run:
+After running, the script will generate a file named `ribosomal.interval_list` containing ribosomal RNA intervals.
 
+---
+
+## `BedtoRefSeqBed.sh`
+
+### Purpose
+
+This script converts chromosome names in a BED file from the standard `chr1`, `chr2`, etc., format to RefSeq accession numbers (e.g., `NC_000067.7` for `chr1`), which are used in reference genomes for certain bioinformatics tools.
+
+### Usage
+
+```bash
+./BedtoRefSeqBed.sh -I <input.bed> -O <output.bed>
 ```
-setwd("/data")
-dir()
+
+- `-I`: Input BED file with standard chromosome names.
+- `-O`: Output BED file with RefSeq accession numbers.
+
+### Description
+
+The script uses `sed` to search for standard chromosome names (e.g., `chr1`, `chrX`) and replaces them with the corresponding RefSeq accession numbers for the mouse genome (GRCm39). It then writes the modified content to the specified output file.
+
+### Example
+
+```bash
+./BedtoRefSeqBed.sh -I input.bed -O output_refseq.bed
 ```
 
-You should see your generated data, which you can now further process inside R. **CAVEAT: Save any results etc. only into the folder you have mounted inside the container (in this example "/data") as docker is ephemeral (when run with the '--rm' option) and will not keep any files.**
+This will create a new BED file (`output_refseq.bed`) where the chromosome names are replaced with their corresponding RefSeq accession numbers.
 
-For the actual analysis, I would recommend the documentation of [DESeq2](http://www.bioconductor.org/packages/release/bioc/html/DESeq2.html), [edgeR](http://master.bioconductor.org/packages/release/bioc/html/edgeR.html) or [limma](http://master.bioconductor.org/packages/release/bioc/html/limma.html). An R transcript of how the example data was analysed is available [here](https://microasp.upsc.se/root/upscb-public/blob/master/projects/Robinson2014/src/Robinson2014-rnaseq-analysis.R).
+### Dependencies
 
-## **References**
+- **Sed**: This tool is required and is commonly available on Unix-based systems.
 
-[1] Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics (Oxford, England), 1–7. doi:10.1093/bioinformatics/btu170
+### RefSeq Mapping
 
-[2] Kopylova, E., Noé, L., & Touzet, H. (2012). SortMeRNA: Fast and accurate filtering of ribosomal RNAs in metatranscriptomic data. Bioinformatics, 28, 3211–3217. doi:10.1093/bioinformatics/bts611
+The chromosome names are mapped as follows:
 
-[3] Dobin, A., Davis, C. A., Schlesinger, F., Drenkow, J., Zaleski, C., Jha, S., … Gingeras, T. R. (2013). STAR: Ultrafast universal RNA-seq aligner. Bioinformatics, 29, 15–21. doi:10.1093/bioinformatics/bts635
+- `chr1` → `NC_000067.7`
+- `chr2` → `NC_000068.8`
+- `chr3` → `NC_000069.7`
+- `chr4` → `NC_000070.7`
+- `chr5` → `NC_000071.7`
+- `chr6` → `NC_000072.7`
+- `chr7` → `NC_000073.7`
+- `chr8` → `NC_000074.7`
+- `chr9` → `NC_000075.7`
+- `chr10` → `NC_000076.7`
+- `chr11` → `NC_000077.7`
+- `chr12` → `NC_000078.7`
+- `chr13` → `NC_000079.7`
+- `chr14` → `NC_000080.7`
+- `chr15` → `NC_000081.7`
+- `chr16` → `NC_000082.7`
+- `chr17` → `NC_000083.7`
+- `chr18` → `NC_000084.7`
+- `chr19` → `NC_000085.7`
+- `chrX` → `NC_000086.8`
+- `chrY` → `NC_000087.8`
 
-[4] Li, H., & Durbin, R. (2009). Fast and accurate short read alignment with Burrows-Wheeler transform. Bioinformatics, 25, 1754–1760. doi:10.1093/bioinformatics/btp324
+### Output
 
-[5] Anders, S., Pyl, P. T., & Huber, W. (2014). HTSeq A Python framework to work with high-throughput sequencing data. bioRxiv. doi:10.1101/002824
+The script generates a new BED file (`output.bed`) where the chromosome names are updated to RefSeq accession numbers. This file is suitable for workflows that require RefSeq format.
 
-[6] Gentleman, R. C., Carey, V. J., Bates, D. M., Bolstad, B., Dettling, M., Dudoit, S., … Zhang, J. (2004). Bioconductor: open software development for computational biology and bioinformatics. Genome Biology, 5, R80. doi:10.1186/gb-2004-5-10-r80
+---
 
-[7] R Core Team. (2014). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria, URL http://www.R–project.org/.
+## `htseqCheckStrand.sh`
 
-[8] Li, H., Handsaker, B., Wysoker, A., Fennell, T., Ruan, J., Homer, N., … Durbin, R. (2009). The Sequence Alignment/Map format and SAMtools. Bioinformatics, 25, 2078–2079. doi:10.1093/bioinformatics/btp352
+### Purpose
 
-[9] Li, H. (2011). A statistical framework for SNP calling, mutation discovery, association mapping and population genetical parameter estimation from sequencing data. Bioinformatics, 27, 2987–2993. doi:10.1093/bioinformatics/btr509
+This script samples a specified number of reads from a BAM file and uses `htseq-count` to determine the most likely strandedness (i.e., whether the RNA-seq data is stranded or not) based on the provided GTF file.
 
-[10] Skinner, M. E., Uzilov, A. V., Stein, L. D., Mungall, C. J., & Holmes, I. H. (2009). JBrowse: A next-generation genome browser. Genome Research, 19, 1630–1638. doi:10.1101/gr.094607.109
+### Usage
 
-[11] Zhang, Y., Liu, T., Meyer, C. A., Eeckhoute, J., Johnson, D. S., Bernstein, B. E., … Liu, X. S. (2008). Model-based analysis of ChIP-Seq (MACS). Genome Biology, 9(9), R137. doi:10.1186/gb-2008-9-9-r137
+```bash
+./htseqCheckStrand.sh <BAM file> <GTF file> <Number of reads to sample>
+```
 
-[12] Nix, D. A., Courdy, S. J., & Boucher, K. M. (2008). Empirical methods for controlling false positives and estimating confidence in ChIP-Seq peaks. BMC Bioinformatics, 9, 523. doi:10.1186/1471-2105-9-523
+- `<BAM file>`: Path to the BAM file to sample and analyze.
+- `<GTF file>`: Path to the GTF annotation file used by `htseq-count`.
+- `<Number of reads to sample>`: Number of reads to sample from the BAM file for strandedness inference.
 
-[13] Jothi, R., Cuddapah, S., Barski, A., Cui, K., & Zhao, K. (2008). Genome-wide identification of in vivo protein-DNA binding sites from ChIP-Seq data. Nucleic Acids Research, 36(16), 5221–5231. doi:10.1093/nar/gkn488
+### Description
 
-[14] Bray, N. L., Pimentel, H., Melsted, P., & Pachter, L. (2015). Near-optimal RNA-Seq quantification. aRxiv. http://doi.org/arXiv:1505.02710
+1. **Check for Required Tools**: Ensures that `htseq-count` and `samtools` are installed.
+2. **Verify BAM File Header**: Checks if the BAM file contains `@SQ` lines in the header, which are necessary for proper processing.
+3. **Sample Reads**: Creates a temporary BAM file with a specified number of reads sampled from the beginning of the original BAM file.
+4. **Run `htseq-count`**: Executes `htseq-count` with different strandedness options (`-s no`, `-s yes`, `-s reverse`) to count reads.
+5. **Determine Strandedness**: Compares read counts for each strandedness option and infers the most likely strandedness based on the highest read count.
+6. **Output Results**: Stores the results in a text file named `<BAM file name>_strand_results.txt`.
 
-[15] Ewels, P., Magnusson, M., Lundin, S., & K??ller, M. (2016). MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics, 32(19), 3047–3048. http://doi.org/10.1093/bioinformatics/btw354
+### Example
 
-[16] Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods.
+```bash
+./htseqCheckStrand.sh sample.bam annotations.gtf 1000
+```
+
+This will sample 1000 reads from `sample.bam`, run `htseq-count` for each strandedness option, and save the results to `sample_strand_results.txt`.
+
+### Dependencies
+
+- **htseq-count**: To count reads and infer strandedness.
+- **samtools**: To handle BAM file operations.
+
+### Notes
+
+- Ensure the GTF file is compatible with the BAM file (i.e., it should be in the same genome assembly version).
+- The sampling of reads is done from the beginning of the BAM file. If the file is large and/or the reads are not uniformly distributed, consider using a random sampling approach for better representation.
+
+### Output
+
+- **`<BAM file name>_strand_results.txt`**: Contains the results of the strandedness inference, including total read counts for each strandedness option and the inferred strandedness.
+
+Feel free to modify or extend this script based on specific requirements or additional analyses.
+
+---
+
+## `salmon_quant.sh`
+
+### Purpose
+
+This script performs quantification of RNA-seq data using Salmon. It processes FASTQ files to estimate transcript abundance and generates a MultiQC report summarizing the quantification results.
+
+### Usage
+
+```bash
+./salmon_quant.sh
+```
+
+### Description
+
+1. **Directories and Constants**:
+
+   - **FASTQ_DIR**: Directory where FASTQ files are located (default is the current directory).
+   - **SALMON_OUTPUT_DIR**: Base directory for Salmon output.
+   - **INDEX_DIR**: Directory where the Salmon index is stored or will be built.
+   - **EXPERIMENT_OUTPUT_DIR**: Directory where Salmon results for different experiment types will be stored.
+   - **LOG_DIR**: Directory for storing logs.
+   - **TRANSCRIPTOME_FASTA**: Path to the transcriptome FASTA file used for building the Salmon index.
+
+2. **Index Building**:
+
+   - If the Salmon index does not exist, it is built from the provided transcriptome FASTA file.
+
+3. **Quantification**:
+
+   - **Function `run_salmon`**: This function runs Salmon quantification on each FASTQ file found in the specified directory. It infers strandedness automatically (`-l A` option) and stores results in a dedicated output directory for each sample.
+
+4. **Processing FASTQ Files**:
+
+   - Finds all FASTQ files in the `FASTQ_DIR` and processes each file using Salmon.
+
+5. **MultiQC Report**:
+   - Runs MultiQC to aggregate and visualize the Salmon quantification results.
+
+### Arguments
+
+This script does not require command-line arguments; it uses predefined constants for configuration.
+
+### Example
+
+To use this script, simply run it in the directory where your FASTQ files are located, or adjust the `FASTQ_DIR` variable in the script accordingly:
+
+```bash
+./salmon_quant.sh
+```
+
+### Dependencies
+
+- **Salmon**: For RNA-seq quantification.
+- **MultiQC**: For aggregating and visualizing results.
+- **GNU Parallel**: (Optional) Can be used to run jobs in parallel if desired.
+
+### Notes
+
+- Ensure that the `TRANSCRIPTOME_FASTA` file matches the genome assembly used for alignment.
+- The `-l A` option in Salmon allows automatic inference of the library type. If you know the specific strandedness of your samples, you can adjust this option accordingly.
+- The `MultiQC` command assumes it is installed and available in your PATH.
+
+### Output
+
+- **Salmon Quantification Results**: Stored in `EXPERIMENT_OUTPUT_DIR`, with separate directories for each sample.
+- **Logs**: Stored in `LOG_DIR`, with log files named according to the sample.
+- **MultiQC Report**: Aggregates all Salmon quantification results and is stored in the `SALMON_OUTPUT_DIR`.
+
+---
+
+## `runQuant3p.sh`
+
+### Purpose
+
+This script performs RNA-seq quantification using the `quant3p` tool on BAM files. It processes BAM files to generate count matrices and logs the results.
+
+### Usage
+
+```bash
+./runQuant3p.sh
+```
+
+### Description
+
+1. **Directories and Constants**:
+
+   - **JOB_NUMBER**: Number of parallel jobs for processing (default is 8).
+   - **BAM_DIR**: Directory containing BAM files (default is the current directory).
+   - **GTF_FILE**: Path to the GTF file for gene annotations.
+   - **OUTPUT_DIR**: Directory where quant3p results will be stored.
+   - **LOG_DIR**: Directory where logs will be stored.
+
+2. **Creating Directories**:
+
+   - The script creates the `OUTPUT_DIR` and `LOG_DIR` if they do not already exist.
+
+3. **Quant3p Execution**:
+
+   - **Function `run_quant3p`**: This function runs `quant3p` on each BAM file. It saves the results in `OUTPUT_DIR` and logs in `LOG_DIR`.
+   - Uses `quant3p` to process each BAM file with the specified GTF file. The results and logs are saved with filenames based on the base name of each BAM file.
+
+4. **Parallel Processing**:
+
+   - Uses `GNU parallel` to run `quant3p` on multiple BAM files simultaneously. The number of parallel jobs is controlled by the `JOB_NUMBER` variable.
+
+5. **Completion Logging**:
+   - Logs a message indicating that the quant3p analysis has been completed.
+
+### Arguments
+
+This script does not take command-line arguments. It relies on predefined variables for configuration.
+
+### Example
+
+To use this script, run it in the directory where your BAM files are located, or adjust the `BAM_DIR` variable in the script:
+
+```bash
+./runQuant3p.sh
+```
+
+### Dependencies
+
+- **quant3p**: For RNA-seq quantification.
+- **GNU Parallel**: For running jobs in parallel.
+
+### Output
+
+- **Quant3p Results**: Each BAM file will generate a corresponding result file in the `OUTPUT_DIR` with the suffix `_quant3p_results.txt`.
+- **Logs**: Each BAM file will generate a corresponding log file in the `LOG_DIR` with the suffix `_quant3p.log`.
+- **Completion Log**: A log entry indicating the completion of the analysis will be added to `LOG_DIR/quant3p_analysis.log`.
+
+### Notes
+
+- Ensure that `quant3p` is installed and available in your PATH.
+- Modify `JOB_NUMBER` as needed based on the number of cores available on your machine.
+- Ensure the `GTF_FILE` path and `BAM_DIR` are set correctly according to your file system and experiment setup.
+
+This script automates the process of running quant3p on multiple BAM files, facilitating efficient analysis of RNA-seq data.
+
+---
+
+## `get_chr_coverage.sh`
+
+### Purpose
+
+This script calculates the coverage of specific chromosomes (chrX and chrY, in RefSeq notation) from indexed BAM files and outputs the results to a text file.
+
+### Usage
+
+```bash
+./get_chr_coverage.sh
+```
+
+### Description
+
+1. **Directories and Files**:
+
+   - **BAM_DIR**: Directory containing indexed BAM files (`.bam` files). Ensure that corresponding `.bai` files are in the same directory.
+   - **OUTPUT_FILE**: File where chromosome coverage statistics will be saved.
+
+2. **Initialize Output File**:
+
+   - The script initializes the output file with a header line: `File\tChromosome\tCoverage`.
+
+3. **Coverage Calculation**:
+
+   - The script loops through each BAM file in the specified directory.
+   - For each BAM file, it uses `samtools idxstats` to extract coverage statistics for chromosomes `NC_000086.8` (chrX) and `NC_000087.8` (chrY).
+   - The coverage values are appended to the `OUTPUT_FILE` with the corresponding file name.
+
+4. **Output**:
+   - The results are stored in `chr_coverage.txt` in a tab-delimited format with columns for file name, chromosome, and coverage.
+
+### Example
+
+To use this script, simply execute it in the terminal. Make sure the `BAM_DIR` is correctly set to the directory containing your BAM files:
+
+```bash
+./get_chr_coverage.sh
+```
+
+### Dependencies
+
+- **samtools**: For extracting coverage statistics from BAM files.
+
+### Output
+
+- **`chr_coverage.txt`**: Contains coverage statistics for chromosomes chrX and chrY for each BAM file in the specified directory. The file is formatted with tab-separated values:
+
+  ```
+  File\tChromosome\tCoverage
+  example.bam\tNC_000086.8\t123456
+  example.bam\tNC_000087.8\t654321
+  ```
+
+### Notes
+
+- Ensure that `samtools` is installed and available in your PATH.
+- Verify that the chromosome names `NC_000086.8` and `NC_000087.8` match the reference genome used for indexing the BAM files.
+- Modify `BAM_DIR` and `OUTPUT_FILE` variables in the script if needed to fit your specific setup.
+
+This script provides a quick way to assess coverage for specific chromosomes across multiple BAM files, useful for quality control and analysis in genomic studies.
+
+---
+
+Here's a README for `samtools_build_index.sh`:
+
+## `samtools_build_index.sh`
+
+### Purpose
+
+This script creates index files (`.bai`) for BAM files located in a specified directory. Index files are essential for many downstream applications that require quick access to specific regions of BAM files.
+
+### Usage
+
+```bash
+./samtools_build_index.sh
+```
+
+### Description
+
+1. **Directories**:
+
+   - **BAM_DIR**: Directory containing BAM files that need to be indexed.
+
+2. **Indexing**:
+
+   - The script loops through each BAM file in the specified directory.
+   - For each BAM file, it runs `samtools index` to generate the corresponding index file (`.bai`).
+
+3. **Output**:
+   - Each BAM file will have an associated index file (`.bai`) created in the same directory.
+
+### Example
+
+To use this script, ensure that `BAM_DIR` is set to the directory containing your BAM files. Then, execute the script in the terminal:
+
+```bash
+./samtools_build_index.sh
+```
+
+### Dependencies
+
+- **samtools**: Required for creating BAM file indexes.
+
+### Notes
+
+- Ensure that `samtools` is installed and available in your PATH.
+- Verify that `BAM_DIR` correctly points to the directory with your BAM files.
+- The script assumes that all BAM files in the directory need indexing. If you only need to index specific files, you may need to modify the script accordingly.
+
+This script is useful for preparing BAM files for analysis by ensuring that each file has an index, which is necessary for efficient data access in many bioinformatics tools.
