@@ -562,3 +562,41 @@ To use this script, ensure that `BAM_DIR` is set to the directory containing you
 - The script assumes that all BAM files in the directory need indexing. If you only need to index specific files, you may need to modify the script accordingly.
 
 This script is useful for preparing BAM files for analysis by ensuring that each file has an index, which is necessary for efficient data access in many bioinformatics tools.
+
+---
+
+## Sorted featureCounts Output (`sortedFeatureCounts.sh`)
+This script performs RNA-seq read quantification using **featureCounts** and processes the output to create a sorted count matrix. It handles BAM files, runs featureCounts, and then reorders the output columns lexicographically.
+
+### Usage
+```bash
+./sortedFeatureCounts.sh
+```
+
+#### Options
+- **BAM_DIR**: Directory containing BAM files (default: current directory `.`).
+- **ANNOTATION_FILE**: Path to the GTF annotation file (default: `/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.gtf`).
+- **RAW_OUTPUT_DIR**: Directory where the raw featureCounts output will be saved (default: `./featureCounts/raw`).
+- **MATRIX_OUTPUT_DIR**: Directory where the final sorted count matrix will be saved (default: `./featureCounts/count_matrices`).
+- **LOG_DIR**: Directory to store logs (default: `./featureCounts/logs`).
+- **THREADS**: Number of threads for featureCounts to use (default: 12).
+
+### What the Script Does
+1. **Locates and Sorts BAM Files**: Finds all `.bam` files in the specified directory and sorts them lexicographically.
+2. **Runs featureCounts**: Executes featureCounts on the sorted BAM files, using the specified annotation file and parameters.
+3. **Processes Output**: Uses `awk` to reorder the columns of the featureCounts output, creating a sorted count matrix.
+4. **Generates Headers**: Creates a header row with "Geneid" as the first column, followed by simplified sample names derived from the BAM filenames.
+5. **Logs the Process**: Keeps logs of the featureCounts run and the script's execution.
+
+### Script Caveats
+- **BAM file naming**: The script assumes BAM files are named descriptively (e.g., `SampleName_Aligned.sortedByCoord.out.bam`). The sample names in the output matrix are derived from these filenames.
+- **Output format**: The final output is a tab-separated file with "Geneid" as the first column, followed by count data for each sample.
+- **Column ordering**: Sample columns in the output are ordered lexicographically based on the BAM filenames.
+- **Memory usage**: featureCounts can be memory-intensive. Ensure your system has sufficient RAM, especially for large BAM files or complex annotations.
+- **Dependencies**: Requires **featureCounts** to be installed and available in the system's `$PATH`.
+- **Annotation file**: Ensure the specified GTF annotation file exists and is appropriate for your organism and genome build.
+
+### Output
+- A raw featureCounts output file in `RAW_OUTPUT_DIR`.
+- A sorted count matrix file in `MATRIX_OUTPUT_DIR`, with simplified column headers and lexicographically ordered sample columns.
+- Log files in `LOG_DIR`, including featureCounts execution logs and script completion status.
