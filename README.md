@@ -1,15 +1,14 @@
 # General information
 
-I am shamelessly forking the [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs) managed by [Bastian Schiffthaler](https://github.com/bschiffthaler) 
+I am shamelessly forking the [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs) managed by [Bastian Schiffthaler](https://github.com/bschiffthaler)
 
 The dockerhub page for the original pipeleine is [here](https://registry.hub.docker.com/u/bschiffthaler/ngs/)!
 
-I`ll be running tests on  modifications and adjustments to the pipeleine updating tools versions to the latest/or stable ones, so work is not guaranteed.
+I`ll be running tests on modifications and adjustments to the pipeleine updating tools versions to the latest/or stable ones, so work is not guaranteed.
 
 Below I leave some of the original commentaries by Bastian Shiffthaller. Later I might modify the README instructions based on the adjusments I might introduce into the pipeline.
 
-
-# Build the Docker Image 
+# Build the Docker Image
 
 Build the docker with:
 
@@ -17,13 +16,13 @@ Build the docker with:
 docker build -t <my_image_name> base
 ```
 
-In case of errors it`s usefull to build an image from scratch without using the cache from interim builds logging all the stderr and stdout: 
+In case of errors it`s usefull to build an image from scratch without using the cache from interim builds logging all the stderr and stdout:
 
 ```
 docker build --no-cache -t <my_image_name> . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
 ```
 
-----------------------
+---
 
 # General information
 
@@ -35,28 +34,24 @@ Ready-to-work docker for next generation sequence analysis including binaries:
 - Feature Summarisation [(HTSeq)](http://www-huber.embl.de/HTSeq/doc/overview.html) [5]
 - File manipulation and exploration [(samtools,htslib,bcftools)](http://www.htslib.org/) [8],[9]
 - Alignment visualisation ([JBrowse](http://jbrowse.org/)) [10]
-- Peak calling ([MACS2](http://liulab.dfci.harvard.edu/MACS/))  [11]
+- Peak calling ([MACS2](http://liulab.dfci.harvard.edu/MACS/)) [11]
 - Sequence data analysis ([Useq](http://useq.sourceforge.net/)) [12]
 - Binding site determination ([SISSRs](http://www.rajajothi.com/sissrs/)) [13]
 
-One tools functionality has so far been added in comparison to the [original repo](https://github.com/bschiffthaler/ngs): 
-- [quant3p](https://github.com/ctlab/quant3p)  
+One tools functionality has so far been added in comparison to the [original repo](https://github.com/bschiffthaler/ngs):
 
-A couple of tools have been silenced from the [original repo](https://github.com/bschiffthaler/ngs). These are:  
-- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2] 
-- [kallisto](https://pachterlab.github.io/kallisto/) [14] 
+- [quant3p](https://github.com/ctlab/quant3p)
 
-R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 6Gb). 
+A couple of tools have been silenced from the [original repo](https://github.com/bschiffthaler/ngs). These are:
 
-# Dockerfile recipes 
-For the time being there are two Dockerfiles: Dockerfile and Dockerfile_mod. 
-- Dockerfile should be considered the stable image recipe (has no Salmon functionality) 
-- Dockerfile_mod is an experimental image, which I test my adjustments on 
+- rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2]
+- [kallisto](https://pachterlab.github.io/kallisto/) [14]
 
+R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 6Gb).
 
 The source (+Dockerfile) which was used to build this container, is [here](https://github.com/bschiffthaler/ngs) on GitHub!
 
-The tutorial below is for the time being is a duplicate of the Bastian Schiffthaler`s](https://github.com/bschiffthaler) [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs). I`ll be populating it later with my own understanding on how I like to use the container. 
+The tutorial below is for the time being is a duplicate of the Bastian Schiffthaler\`s](https://github.com/bschiffthaler) [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs). I\`ll be populating it later with my own understanding on how I like to use the container.
 
 # Common use cases
 
@@ -80,6 +75,98 @@ For reasons of brevity, I will not be going into great detail (see the protocol)
 9. References
 
 ## Basics
+
+### My preferred approach & Docker basics
+
+I like to mess with my tools interactively, using Docker container as a virtual environment. For that purpose I prefer to run a Docker off of my built Docker image, and then work from inside the Docker container\`s interactive bash shell. The downside is that once you leave the shell the container stops, and need to be restarted again to work with it. If you left tools working inside the container, they\`ll abort. Spo here`s my standard approach.
+
+##### 1. Create a tmux session
+
+First, I create a tmux session. I name the session with project I`m working on
+
+```
+tmux new -s <session_name>
+```
+
+##### 2. Create docker container
+
+Then I create a docker container based off of the Docker image, I built earlier. I mount all the necessary folders, that I`ll need to have for my work
+
+```
+docker run --name <docker_container_name> \
+    -v /path/to/Docker/base/scripts:/scripts \
+    -v /path/to/data/folder/with/fasta_reads:/data/Mecr \
+    -v /path/to/reference_genome:/reference_genome \
+    -it <docker_image_name> bash
+```
+
+Once you run the command you end up in the interactive `bash` shell under the Docker container environment. Keep in mind that all the paths will be relative to the Docker virtual environment.
+
+After that I perform all my processing from the Docker container shell. Oftentimes, I start the tools and leave them work under the Docker environment.
+
+##### 3. Disconnect from the tmux session
+
+If a particular tools is running and doing it`s job, I leave the tmux session by pressing 'Ctrl & B' + 'D', consequtively. This detaches you from the tmux session, while the Docker container will keep on running. Tmux session will prevent Docker container from stopping or exiting, even after the tools under the Docker container will finish their job.
+
+##### 4. Reconnect to the tmux session
+
+To re-attach to the tmux session with the Docker container shell environment you just need to type
+
+```
+tmux attach -t <tmux_session>
+```
+
+You will end up in the Docker container shell.
+
+##### 5. Stop container & exit tmux session
+
+If you need to kill the session, which essentially will stop the container as well (unless open in parallel in some other tmux session), you just type 2 times
+
+```
+exit
+```
+
+Which get`s you out of the container (which essentially will stop the container as well, unless open in parallel in some other tmux session).
+
+##### 6. Reconnect to the shell of an already running container
+
+If you ever need to reconnect to the Docker container shell once again (while it is running), you just type
+
+```
+docker exec -it <docker_container_name> bash
+```
+
+If the docker container has been stopped, for whatever the reason, you can just start it once again with
+
+```
+docker start -ai <stopped_docker_container_name>
+```
+
+##### 6. Docker image & container checks
+
+To check, which containers are currently running
+
+```
+docker ps
+```
+
+To check all container, including the stopped ones
+
+```
+docker ps -a
+```
+
+To delete a docker container
+
+```
+docker rm <docker_container_name OR identifier>
+```
+
+To delete a docker image
+
+```
+docker rmi <docker image_name OR identifier>
+```
 
 ### Mounting host directories inside the docker container
 
