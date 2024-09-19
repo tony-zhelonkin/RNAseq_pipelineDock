@@ -125,8 +125,8 @@ WORKDIR /build
 #########
 ### Pip installs: HTSeq, PySam, MACS2, RSeQC, developer MultiQC (bugs for picard CollectRNAseqMetrics function) 
 #########
-RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 RSeQC 
-RUN pip3 install --upgrade --force-reinstall git+https://github.com/MultiQC/MultiQC.git
+RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 RSeQC multiqc==1.25 
+#RUN pip3 install --upgrade --force-reinstall git+https://github.com/MultiQC/MultiQC.git
 WORKDIR /build
 
 ########
@@ -140,7 +140,17 @@ RUN wget https://github.com/ctlab/quant3p/archive/refs/heads/master.zip && \
 WORKDIR quant3p
 RUN python setup.py install
 WORKDIR /build
-    
+
+########
+### featureCounts
+#######
+WORKDIR /build
+RUN wget https://github.com/ShiLab-Bioinformatics/subread/releases/download/2.0.2/subread-2.0.2-Linux-x86_64.tar.gz && \
+    tar -xvf subread-2.0.2-Linux-x86_64.tar.gz
+WORKDIR subread-2.0.2-Linux-x86_64/bin
+RUN cp featureCounts /usr/bin/
+WORKDIR /build
+        
 #########
 ### SortmeRNA
 #########

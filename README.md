@@ -47,7 +47,17 @@ A couple of tools have been silenced from the [original repo](https://github.com
 - rRNA filtering [(SortMeRNA)](http://bioinfo.lifl.fr/RNA/sortmerna/) [2]
 - [kallisto](https://pachterlab.github.io/kallisto/) [14]
 
-R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 6Gb).
+I`ve added a couple of scripts, that made my life a little bit easier. Complete list of scripts and description is [here](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/tree/master/base). Some of the main scripts are the ones that set the core of the pipeline:
+
+- `getPreAlignmentQC.sh`
+- `runSTARalign.sh`
+- `getPostAlignmentQC.sh`
+- `htseqCheckStrand.sh`
+- `runFeatureCounts.sh`
+
+The meaning is pretty self-explanatory. For complete list and detailed description look [here](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/tree/master/base)
+
+R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 7Gb).
 
 The source (+Dockerfile) which was used to build this container, is [here](https://github.com/bschiffthaler/ngs) on GitHub!
 
