@@ -55,7 +55,7 @@ The tutorial below is for the time being is a duplicate of the Bastian Schifftha
 
 # The Pipeline logic
 
-[image](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/blob/master/RnaSeqDock_pipeline.png)
+[image](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/blob/master/RnaSeqDock_pipeline.png?raw=true)
 
 
 # Common use cases
