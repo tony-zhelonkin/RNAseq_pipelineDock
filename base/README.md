@@ -565,12 +565,12 @@ This script is useful for preparing BAM files for analysis by ensuring that each
 
 ---
 
-## Sorted featureCounts Output (`sortedFeatureCounts.sh`)
+## Sorted featureCounts Output (`runFeatureCounts.sh`)
 This script performs RNA-seq read quantification using **featureCounts** and processes the output to create a sorted count matrix. It handles BAM files, runs featureCounts, and then reorders the output columns lexicographically.
 
 ### Usage
 ```bash
-./sortedFeatureCounts.sh
+./runFeatureCounts.sh
 ```
 
 #### Options
