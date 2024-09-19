@@ -83,6 +83,8 @@ This script performs post-alignment quality control (QC) on BAM files using Pica
 3. **Samtools**: Runs `flagstat` to generate alignment statistics.
 4. **MultiQC**: Combines the metrics from all tools into a single report, including metrics from STAR alignments located in `*_STARpass1` subdirectories.
 
+**N.B!** The script does not inherently remove duplicates. If you need to remove duplicates, use `dedupPicard_postQC.sh`, or modify the script by adding `--REMOVE_DUPLICATES false` as specified on the [Picard manual](https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard). This is done intentionally, as the main purpose of the pipeline is bulk RNAseq analysis, and without UMIs it\`s basically impossible to remove duplicates without messing up with the biology of the sample. For reference see for example [here](https://www.biorxiv.org/content/10.1101/2023.12.12.571280v1) 
+
 ### Caveats
 
 1. **File Naming**: The script assumes all BAM files are in the specified `BAM_DIR`. Incorrectly named files or missing BAM files will result in skipped QC steps.
