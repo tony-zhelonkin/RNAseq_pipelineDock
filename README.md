@@ -53,6 +53,11 @@ The source (+Dockerfile) which was used to build this container, is [here](https
 
 The tutorial below is for the time being is a duplicate of the Bastian Schiffthaler\`s](https://github.com/bschiffthaler) [RNAseq pipeline repo](https://github.com/bschiffthaler/ngs). I\`ll be populating it later with my own understanding on how I like to use the container.
 
+# The Pipeline logic
+
+[image](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/blob/master/RnaSeqDock_pipeline.png)
+
+
 # Common use cases
 
 Even if meant for training purposes, this Docker should allow a scientist to carry out an RNA-Seq based differential expression study as described [in this protocol](http://www.epigenesys.eu/images/stories/protocols/pdf/20150303161357_p67.pdf).
