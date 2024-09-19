@@ -55,7 +55,7 @@ I`ve added a couple of scripts, that made my life a little bit easier. Complete 
 - `htseqCheckStrand.sh`
 - `runFeatureCounts.sh`
 
-The meaning is pretty self-explanatory. For complete list and detailed description look [here](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/tree/master/base)
+What the scripts do is pretty self-explanatory. For complete list and detailed description look [here](https://github.com/tony-zhelonkin/RNAseq_pipelineDock/tree/master/base)
 
 R functionality has been completely turned off and silenced for now. Since the original repo the docker base bioconductor/release_base2 [6] has been deprecated. The current installation is based on Ubuntu 20.04, which is somewhat heavy (The resulting docker image is around 7Gb).
 

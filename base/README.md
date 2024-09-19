@@ -584,7 +584,7 @@ This script performs RNA-seq read quantification using **featureCounts** and pro
 ### What the Script Does
 1. **Locates and Sorts BAM Files**: Finds all `.bam` files in the specified directory and sorts them lexicographically.
 2. **Runs featureCounts**: Executes featureCounts on the sorted BAM files, using the specified annotation file and parameters.
-3. **Processes Output**: Uses `awk` to reorder the columns of the featureCounts output, creating a sorted count matrix.
+3. **Processes Output**: Uses `awk` to reorder the columns of the featureCounts output, creating a sorted count matrix. Awk logic double-checked against the script without awk sorting functionality - all correct.
 4. **Generates Headers**: Creates a header row with "Geneid" as the first column, followed by simplified sample names derived from the BAM filenames.
 5. **Logs the Process**: Keeps logs of the featureCounts run and the script's execution.
 
