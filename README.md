@@ -212,7 +212,7 @@ This will output the FastQC report as html in the directory. For interpretation 
 
 ## rRNA sorting with SortMeRNA
 
-Sorting out rRNA contamination with `sortmerna` can be carried out in a similar manner. The rRNA databases which come with `sortmerna` are in `/usr/share/rRNA_databases` and have been pre-indexed during the build of the docker. The indexes are in `/usr/share/rRNA_databases/index` and are always prefixed with the same name (minus the ".fasta" ending) as the source FASTA file. The correct syntax of the command can be taken from `sortmerna -h` and the [sortmerna manual](http://bioinfo.lifl.fr/RNA/sortmerna/code/SortMeRNA-user-manual-v2.0.pdf).
+Sorting out rRNA contamination with `sortmerna` can be carried out in a similar manner. Be mindful, whether rRNA sorting is indeed necessary. The rRNA databases which come with `sortmerna` are in `/usr/share/rRNA_databases` and have been pre-indexed during the build of the docker. The indexes are in `/usr/share/rRNA_databases/index` and are always prefixed with the same name (minus the ".fasta" ending) as the source FASTA file. The correct syntax of the command can be taken from `sortmerna -h` and the [sortmerna manual](http://bioinfo.lifl.fr/RNA/sortmerna/code/SortMeRNA-user-manual-v2.0.pdf).
 
 To list the available databases:
 
