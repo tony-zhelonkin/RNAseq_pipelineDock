@@ -9,11 +9,20 @@ I`ll be running tests on modifications and adjustments to the pipeleine updating
 Below I leave some of the original commentaries by Bastian Shiffthaller. Later I might modify the README instructions based on the adjusments I might introduce into the pipeline.
 
 # Build the Docker Image
+As of 2024-11-26 added rootless user, need to specify during build.
 
 Build the docker with:
 
 ```
 docker build -t <my_image_name> base
+```
+
+To build image under the current user. Or you may check your user using `id` command in terminal and changing the dockerfile specs. 
+```
+docker build --no-cache \
+  --build-arg USER_ID=$(id -u) \
+  --build-arg GROUP_ID=$(id -g) \
+  -t rnaseq-pipeline . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
 ```
 
 In case of errors, it`s usefull to build an image from scratch without using the cache from interim builds logging all the stderr and stdout:

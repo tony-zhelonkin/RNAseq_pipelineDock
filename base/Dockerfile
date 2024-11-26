@@ -1,7 +1,7 @@
 FROM ubuntu:20.04 
 
 # Environment
-LABEL author = "Anton Zhelonkin (anton.bioinf.md@gmail.com)"
+LABEL maintainers="Anton Zhelonkin (anton.bioinf.md@gmail.com)"
 ENV TZ=America/Chicago
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ARG DEBIAN_FRONTEND=noninteractive
@@ -19,9 +19,6 @@ RUN groupadd -g ${GROUP_ID} rnaseq && \
 RUN mkdir -p /home/rnaseq/reference /home/rnaseq/data && \
     chown -R rnaseq:rnaseq /home/rnaseq
 RUN echo "alias ll='ls -la -G'" >> /home/rnaseq/.profile
-
-# Switch to non-root user for remaining operations
-USER rnaseq
 
 # Previous user handling 
 #RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
@@ -42,10 +39,14 @@ RUN apt update && apt install -y --fix-missing \
     apache2 openssl libcurl4-openssl-dev curl \
     supervisor openssh-server libbz2-dev \
     liblzma-dev automake parallel cmake \ 
-    openjdk-17-jre-headless shellinabox && \
-    mkdir build && 
+    openjdk-17-jre-headless shellinabox
     #usermod -G training,www-data training
+# After creating the build directory
+RUN mkdir build && \
+    chown -R rnaseq:rnaseq /build && \
+    chmod 755 /build
 WORKDIR /build
+
 
 #########
 ### HTSlib tools: Samtools, Bcftools
@@ -54,11 +55,12 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.21/samtools-1.
     https://github.com/samtools/bcftools/releases/download/1.21/bcftools-1.21.tar.bz2 \
     https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2 && \
     tar -xf htslib-1.21.tar.bz2
+
 WORKDIR /build/htslib-1.21
 RUN ./configure && make -j 4 && make install
 WORKDIR /build
 RUN tar -xf bcftools-1.21.tar.bz2
-WORKDIR /build/bcftools-1.20
+WORKDIR /build/bcftools-1.21
 RUN make -j 4 && make install
 WORKDIR /build
 RUN tar -xf samtools-1.21.tar.bz2
@@ -79,7 +81,7 @@ WORKDIR /build
 #########
 ### kallisto
 #########
-RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.51.1.tar.gz && \
+RUN wget https://github.com/pachterlab/kallisto/releases/download/v0.51.1/kallisto_linux-v0.51.1.tar.gz && \
     tar -xf kallisto_linux-v0.51.1.tar.gz
 WORKDIR /build/kallisto
 RUN cp kallisto /usr/local/bin
@@ -269,5 +271,11 @@ RUN mkdir /data && \
 #########
 WORKDIR /build
 RUN rm -rf /build/*
+
+# Switch to non-root user for remaining operations
+USER rnaseq
+RUN mkdir -p /home/rnaseq/analysis \
+    /home/rnaseq/data \
+    /home/rnaseq/scripts
 #RUN rm *tar* && \
 #    rm *zip
