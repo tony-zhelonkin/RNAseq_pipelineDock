@@ -54,15 +54,15 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.21/samtools-1.
     https://github.com/samtools/bcftools/releases/download/1.21/bcftools-1.21.tar.bz2 \
     https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2 && \
     tar -xf htslib-1.21.tar.bz2
-WORKDIR htslib-1.21
+WORKDIR /build/htslib-1.21
 RUN ./configure && make -j 4 && make install
 WORKDIR /build
 RUN tar -xf bcftools-1.21.tar.bz2
-WORKDIR bcftools-1.20
+WORKDIR /build/bcftools-1.20
 RUN make -j 4 && make install
 WORKDIR /build
 RUN tar -xf samtools-1.21.tar.bz2
-WORKDIR samtools-1.21
+WORKDIR /build/samtools-1.21
 RUN make -j 4 && make install
 WORKDIR /build
 
@@ -72,7 +72,7 @@ WORKDIR /build
 #RUN wget https://github.com/alexdobin/STAR/archive/refs/tags/2.7.9a.tar.gz && \
 RUN wget https://github.com/alexdobin/STAR/archive/refs/tags/2.7.11b.tar.gz && \
     tar -xf 2.7.11b.tar.gz
-WORKDIR STAR-2.7.11b/bin/Linux_x86_64_static
+WORKDIR /build/STAR-2.7.11b/bin/Linux_x86_64_static
 RUN cp STAR* /usr/local/bin
 WORKDIR /build
 
@@ -134,7 +134,7 @@ RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.
 # Clone the Picard repository
 RUN git clone https://github.com/broadinstitute/picard.git
 # Set the working directory to the cloned Picard directory
-WORKDIR picard
+WORKDIR /build/picard
 # Build Picard using Gradle and clean up after
 RUN ./gradlew shadowJar
 WORKDIR /build
@@ -167,7 +167,7 @@ RUN wget https://github.com/ctlab/quant3p/archive/refs/heads/master.zip && \
     unzip master.zip && \
     mv quant3p-master quant3p && \
     ln -s /usr/bin/python3 /usr/bin/python
-WORKDIR quant3p
+WORKDIR /build/quant3p
 RUN python setup.py install
 WORKDIR /build
 
@@ -177,7 +177,7 @@ WORKDIR /build
 WORKDIR /build
 RUN wget https://github.com/ShiLab-Bioinformatics/subread/releases/download/2.0.2/subread-2.0.2-Linux-x86_64.tar.gz && \
     tar -xvf subread-2.0.2-Linux-x86_64.tar.gz
-WORKDIR subread-2.0.2-Linux-x86_64/bin
+WORKDIR /build/subread-2.0.2-Linux-x86_64/bin
 RUN cp featureCounts /usr/bin/
 WORKDIR /build
         
@@ -210,7 +210,7 @@ WORKDIR /build
 #########
 RUN wget https://github.com/lh3/bwa/archive/refs/tags/v0.7.18.tar.gz && \
     tar -xf v0.7.18.tar.gz
-WORKDIR bwa-0.7.18
+WORKDIR /build/bwa-0.7.18
 RUN make -j 4 && cp bwa /usr/local/bin
 
 ######### CHIP-seq tools
@@ -267,7 +267,7 @@ RUN mkdir /data && \
 #########
 ### Cleaning up the build 
 #########
-WORKDIR build
+WORKDIR /build
 RUN rm -rf /build/*
 #RUN rm *tar* && \
 #    rm *zip
