@@ -1,15 +1,35 @@
 FROM ubuntu:20.04 
-#(bioconductor/release-core2 was deprecated)
-MAINTAINER Anton Zhelonkin (anton.bioinf.md@gmail.com)
-ENV TZ=USA/Chicago
+
+# Environment
+LABEL author = "Anton Zhelonkin (anton.bioinf.md@gmail.com)"
+ENV TZ=America/Chicago
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ARG DEBIAN_FRONTEND=noninteractive
-RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
-RUN echo 'training:training' | chpasswd
-RUN mkdir /home/training/reference
-RUN mkdir /home/training/data
-RUN chsh -s /bin/bash training
-RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
+
+# User definition 
+# Add build arguments for UID/GID
+ARG USER_ID=1001
+ARG GROUP_ID=1001
+
+# Create group and user matching host's UID/GID
+RUN groupadd -g ${GROUP_ID} rnaseq && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} rnaseq
+
+# Set user as owner of necessary directories
+RUN mkdir -p /home/rnaseq/reference /home/rnaseq/data && \
+    chown -R rnaseq:rnaseq /home/rnaseq
+RUN echo "alias ll='ls -la -G'" >> /home/rnaseq/.profile
+
+# Switch to non-root user for remaining operations
+USER rnaseq
+
+# Previous user handling 
+#RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
+#RUN echo 'training:training' | chpasswd
+#RUN mkdir /home/training/reference
+#RUN mkdir /home/training/data
+#RUN chsh -s /bin/bash training
+#RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
 
 #########
 ### Aptitude packages (updated openJDK from 8 to 17)
@@ -17,51 +37,53 @@ RUN echo "alias ll='ls -la -G'" >> /home/training/.profile
 RUN apt update && apt install -y --fix-missing \
     wget libghc-zlib-dev libfreetype6-dev libpng-dev libxft-dev \
     libncurses-dev git unzip ftp libzmq3-dev libboost-all-dev \
-    nano python3-dev python3-pip ftp \
+    vim nano \
+    python3-dev python3-pip ftp \
     apache2 openssl libcurl4-openssl-dev curl \
     supervisor openssh-server libbz2-dev \
-    liblzma-dev automake vim parallel cmake \ 
+    liblzma-dev automake parallel cmake \ 
     openjdk-17-jre-headless shellinabox && \
-    mkdir build && \
-    usermod -G training,www-data training
+    mkdir build && 
+    #usermod -G training,www-data training
 WORKDIR /build
 
 #########
-### HTSlib tools: Samtools (updated version), Bcftools (updated version)
+### HTSlib tools: Samtools, Bcftools
 #########
-RUN wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 \
-    https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 \
-    https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 && \
-    tar -xf htslib-1.20.tar.bz2
-WORKDIR htslib-1.20
+RUN wget https://github.com/samtools/samtools/releases/download/1.21/samtools-1.21.tar.bz2 \
+    https://github.com/samtools/bcftools/releases/download/1.21/bcftools-1.21.tar.bz2 \
+    https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2 && \
+    tar -xf htslib-1.21.tar.bz2
+WORKDIR htslib-1.21
 RUN ./configure && make -j 4 && make install
 WORKDIR /build
-RUN tar -xf bcftools-1.20.tar.bz2
+RUN tar -xf bcftools-1.21.tar.bz2
 WORKDIR bcftools-1.20
 RUN make -j 4 && make install
 WORKDIR /build
-RUN tar -xf samtools-1.20.tar.bz2
-WORKDIR samtools-1.20
+RUN tar -xf samtools-1.21.tar.bz2
+WORKDIR samtools-1.21
 RUN make -j 4 && make install
 WORKDIR /build
 
 #########
-### STAR (updated version to 2.7.9a)
+### STAR (2.7.11b update)
 #########
-RUN wget https://github.com/alexdobin/STAR/archive/refs/tags/2.7.9a.tar.gz && \
-    tar -xf 2.7.9a.tar.gz
-WORKDIR STAR-2.7.9a/bin/Linux_x86_64_static
+#RUN wget https://github.com/alexdobin/STAR/archive/refs/tags/2.7.9a.tar.gz && \
+RUN wget https://github.com/alexdobin/STAR/archive/refs/tags/2.7.11b.tar.gz && \
+    tar -xf 2.7.11b.tar.gz
+WORKDIR STAR-2.7.11b/bin/Linux_x86_64_static
 RUN cp STAR* /usr/local/bin
 WORKDIR /build
 
-######### (TurnOff)
+#########
 ### kallisto
 #########
-#RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.51.0.tar.gz && \
-#    tar -xf kallisto_linux-v0.51.0.tar.gz
-#WORKDIR /build/kallisto
-#RUN cp kallisto /usr/local/bin
-#WORKDIR /build
+RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.51.1.tar.gz && \
+    tar -xf kallisto_linux-v0.51.1.tar.gz
+WORKDIR /build/kallisto
+RUN cp kallisto /usr/local/bin
+WORKDIR /build
 
 #########
 ### Salmon
@@ -123,10 +145,18 @@ RUN cp -r picard /usr/share/ && \
 WORKDIR /build
 
 #########
-### Pip installs: HTSeq, PySam, MACS2, RSeQC, developer MultiQC (bugs for picard CollectRNAseqMetrics function) 
+### Pip installs: HTSeq, PySam, MACS2, RSeQC, MultiQC, cutadapt
 #########
-RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 RSeQC multiqc==1.25 
-#RUN pip3 install --upgrade --force-reinstall git+https://github.com/MultiQC/MultiQC.git
+RUN pip3 install numpy htseq PySam matplotlib scipy anndata loompy SWIG Cython==0.29.32 MACS3 RSeQC multiqc==1.25.2 cutadapt
+WORKDIR /build
+
+#########
+### Trim Galore
+#########
+RUN curl -fsSL https://github.com/FelixKrueger/TrimGalore/archive/0.6.10.tar.gz -o trim_galore.tar.gz && \
+    tar xvzf trim_galore.tar.gz
+WORKDIR /build/TrimGalore-0.6.10
+RUN cp trim_galore /usr/local/bin
 WORKDIR /build
 
 ########
@@ -184,7 +214,7 @@ WORKDIR bwa-0.7.18
 RUN make -j 4 && cp bwa /usr/local/bin
 
 ######### CHIP-seq tools
-### USeq (updated version)  and Sissrs
+### USeq and Sissrs
 #########
 RUN mkdir /data && \
     wget https://github.com/HuntsmanCancerInstitute/USeq/releases/download/USeq_9.3.5/USeq_9.3.5.zip && \
