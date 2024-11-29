@@ -20,8 +20,10 @@ docker build -t <my_image_name> base
 To build image under the current user. Or you may check your user using `id` command in terminal and changing the dockerfile specs. 
 ```
 docker build --no-cache \
-  --build-arg USER_ID=$(id -u) \
-  --build-arg GROUP_ID=$(id -g) \
+  --build-arg USER_ID=1001 \
+  --build-arg GROUP_ID=1001 \
+  --build-arg USER=mogilenko_lab \
+  --build-arg GROUP=mogilenko_lab \
   -t rnaseq-pipeline . > >(tee -a log.txt) 2> >(tee -a log.txt >&2)
 ```
 

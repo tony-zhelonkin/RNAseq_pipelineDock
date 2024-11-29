@@ -10,15 +10,17 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Add build arguments for UID/GID
 ARG USER_ID=1001
 ARG GROUP_ID=1001
+ARG USER=mogilenko_lab
+ARG GROUP=mogilenko_lab
 
 # Create group and user matching host's UID/GID
-RUN groupadd -g ${GROUP_ID} rnaseq && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} rnaseq
+RUN groupadd -g ${GROUP_ID} ${GROUP} && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} ${USER}
 
 # Set user as owner of necessary directories
-RUN mkdir -p /home/rnaseq/reference /home/rnaseq/data && \
-    chown -R rnaseq:rnaseq /home/rnaseq
-RUN echo "alias ll='ls -la -G'" >> /home/rnaseq/.profile
+RUN mkdir -p /home/${USER}/reference /home/${USER}/data && \
+    chown -R ${USER}:${GROUP} /home/${USER}
+RUN echo "alias ll='ls -la -G'" >> /home/${USER}/.profile
 
 # Previous user handling 
 #RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
@@ -43,7 +45,7 @@ RUN apt update && apt install -y --fix-missing \
     #usermod -G training,www-data training
 # After creating the build directory
 RUN mkdir build && \
-    chown -R rnaseq:rnaseq /build && \
+    chown -R ${USER}:${GROUP} /build && \
     chmod 755 /build
 WORKDIR /build
 
@@ -273,9 +275,9 @@ WORKDIR /build
 RUN rm -rf /build/*
 
 # Switch to non-root user for remaining operations
-USER rnaseq
-RUN mkdir -p /home/rnaseq/analysis \
-    /home/rnaseq/data \
-    /home/rnaseq/scripts
+USER ${USER}
+RUN mkdir -p /home/${USER}/analysis \
+    /home/${USER}/data \
+    /home/${USER}/scripts
 #RUN rm *tar* && \
 #    rm *zip
