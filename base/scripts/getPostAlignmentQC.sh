@@ -28,7 +28,7 @@ run_picard() {
     local bam_file=$1
     local base_name=$(basename "$bam_file" .bam)
     local log_file="$LOG_DIR/${base_name}_picard.log"
-    echo "Running Picard CollectRnaSeqMetrics on $bqqam_file..."
+    echo "Running Picard CollectRnaSeqMetrics on $bam_file..."
     picard CollectRnaSeqMetrics \
         I="$bam_file" \
         O="$PICARD_OUTPUT_DIR/${base_name}_rna_metrics.txt" \
