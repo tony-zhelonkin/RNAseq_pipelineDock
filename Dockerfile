@@ -16,11 +16,19 @@ ARG GROUP=mogilenko_lab
 # Create group and user matching host's UID/GID
 RUN groupadd -g ${GROUP_ID} ${GROUP} && \
     useradd -m -u ${USER_ID} -g ${GROUP_ID} ${USER}
+# Add tmp directories for the user 
+RUN mkdir -p /home/${USER}/tmp && \
+    chown -R ${USER}:${GROUP} /home/${USER}/tmp && \
+    chmod 777 /home/${USER}/tmp
 
 # Set user as owner of necessary directories
 RUN mkdir -p /home/${USER}/reference /home/${USER}/data && \
     chown -R ${USER}:${GROUP} /home/${USER}
 RUN echo "alias ll='ls -la -G'" >> /home/${USER}/.profile
+# Add tmp directory to user`s home 
+RUN mkdir -p /home/${USER}/.tmp && \
+    chown -R ${USER}:${GROUP} /home/${USER}/.tmp && \
+    chmod 777 /home/${USER}/.tmp
 
 # Previous user handling 
 #RUN groupadd -g 2000 training && useradd -m -u 2000 -g 2000 training
@@ -252,9 +260,9 @@ RUN mkdir /data && \
 #ADD scripts/add_JBrowse_tracks.sh /usr/local/bin/add_JBrowse_tracks.sh
 
 #########
-### R installs
+### R install libraries
 #########
-#ENV R_LIBS="/home/training/.r-library"
+#ENV R_LIBS="/home/${USER}/.r-library"
 #ADD scripts/R_installs.R /build/R_installs.R
 #ADD .Renviron /home/training/.Renviron
 #RUN mkdir /home/training/.r-library && \

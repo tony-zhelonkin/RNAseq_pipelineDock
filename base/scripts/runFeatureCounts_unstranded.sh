@@ -4,7 +4,7 @@
 BAM_DIR="."  # Only the current directory
 
 # Annotation file
-ANNOTATION_FILE="/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.gtf"
+ANNOTATION_FILE="/home/mogilenko_lab/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.gtf"
 
 # Output directories
 RAW_OUTPUT_DIR="./featureCounts/raw"

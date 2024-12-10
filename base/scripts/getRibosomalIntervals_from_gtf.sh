@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Variables
-GTF_FILE="/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.gtf"  # Path to your GTF annotation file
+GTF_FILE="/home/mogilenko_lab/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.gtf"  # Path to your GTF annotation file
 INTERVAL_LIST_OUTPUT="ribosomal.interval_list"  # Output file for Picard
-REFERENCE_GENOME="/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.fna"
+REFERENCE_GENOME="/home/mogilenko_lab/mouse_genome/ref_genome/GCF_000001635.27_GRCm39_genomic.fna"
 
 # Step 1: Generate the header with chromosome sizes from the .fai file
 # Check if .fai index exists, if not, create it
